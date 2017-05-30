@@ -1,0 +1,170 @@
+#!/bin/bash
+
+
+# Universal Bash parameter parsing
+# Parse equals separated params into named local variables
+# Standalone named parameter value will equal param name (--force creates variable $force=="force")
+# Parses multi-valued named params into array (--path=path1 --path=path2 creates ${path[*]} array)
+# Parses un-named params into ${ARGV[*]} array
+# @author Oleksii Chekulaiev
+# @version v1.1 (Jul-14-2016)
+parse_params ()
+{
+	local existing_named
+	local ARGV=()
+	echo "local ARGV=(); "
+	while [[ "$1" != "" ]]; do
+		# If equals delimited named parameter
+		if [[ "$1" =~ ^..*=..* ]]; then
+			# key is part before first =
+			local _key=$(echo "$1" | cut -d = -f 1)
+			# val is everything after key and = (protect from param==value error)
+			local _val="${1/$_key=}"
+			# remove dashes from key name
+			_key=${_key//\-}
+			# search for existing parameter name
+			if (echo "$existing_named" | grep "\b$_key\b" >/dev/null); then
+				# if name already exists then it's a multi-value named parameter
+				# re-declare it as an array if needed
+				if ! (declare -p _key 2> /dev/null | grep -q 'declare \-a'); then
+					echo "$_key=(\"\$$_key\");"
+				fi
+				# append new value
+				echo "$_key+=('$_val');"
+			else
+				# single-value named parameter
+				echo "local $_key=\"$_val\";"
+				existing_named=" $_key"
+			fi
+		# If standalone named parameter
+		elif [[ "$1" =~ ^\-. ]]; then
+			# remove dashes
+			local _key=${1//\-}
+			echo "local $_key=\"$_key\";"
+		# non-named parameter
+		else
+			echo "ARGV+=('$1');"
+		fi
+		shift
+	done
+}
+
+#------------------------------ Help functions --------------------------------
+
+# Nicely prints command help
+# @param $1 command name
+# @param $2 description
+# @param $3 [optional] command color
+# @author Oleksii Chekulaiev
+printh ()
+{
+	local COMMAND_COLUMN_WIDTH=25;
+	case "$3" in
+		yellow)
+			printf "  ${yellow}%-${COMMAND_COLUMN_WIDTH}s${NC}" "$1"
+			echo -e "	$2"
+			;;
+		green)
+			printf "  ${green}%-${COMMAND_COLUMN_WIDTH}s${NC}" "$1"
+			echo -e "	$2"
+			;;
+		*)
+			printf "  %-${COMMAND_COLUMN_WIDTH}s" "$1"
+			echo -e "	$2"
+			;;
+	esac
+
+}
+
+echo-red () { echo -e "${red}$1${NC}"; }
+echo-green () { echo -e "${green}$1${NC}"; }
+echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
+echo-yellow () { echo -e "${yellow}$1${NC}"; }
+
+
+show_help ()
+{
+    printh "Andock-ci Pipeline command reference" "" "green"
+
+	echo
+    printh "build" "Runs role: andock-ci.build"
+	printh "up"  "Runs role: andock-ci.fin --tags up"
+	printh "update"  "Runs role: andock-ci.fin --tags update"
+
+	printh "test"  "Runs role: andock-ci.test"
+	printh "reset" "Recreate project services and containers (${yellow}fin help reset${NC})"
+	printh "remove (rm)" "Stop project services and remove their containers (${yellow}fin help remove${NC})"
+	printh "status (ps)" "List project services"
+
+}
+
+
+
+# Search for a file/directory in a directory tree upwards. Return its path.
+# @param $1 filename
+upfind ()
+{
+	if [[ $1 == '' ]]; then return 1; fi
+	local _path
+	_path=$( #incapsulate cd
+		while [[ ! -f $1 ]] && [[ ! -d $1 ]] && [[ $PWD != / ]]; do
+			cd ".."
+		done;
+		if [[ -f $1 ]] || [[ -d $1 ]]; then echo $PWD; exit; fi
+	)
+	# On Windows compensate for getting down to "" and return full absolute path in Unix notation
+	# upfind on windows may return FAKED HOME PATH! because of that. KEEP that in mind
+	[[ "$_path" == "" ]] && _path="$HOME"
+	echo "$_path"
+}
+
+
+# Get path to .docksal folder using upfind
+get_project_path ()
+{
+	if [ -z "$ANDOCK_CI_PATH" ]; then
+		$ANDOCK_CI_PATH=$(upfind ".andock-ci")
+	fi
+	# If we reached $HOME, then we did not find the project root.
+	if [[ "$ANDOCK_CI_PATH" != "$HOME" ]]; then
+		echo "$ANDOCK_CI_PATH"
+	fi
+}
+
+
+
+run_build ()
+{
+get_project_path
+export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
+export ANSIBLE_RETRY_FILES_ENABLED="False"
+#ansible-galaxy install andock-ci.build --force
+ansible-playbook /dev/stdin <<END
+---
+- hosts: localhost
+  vars:
+    play_var: bar
+  vars_files:
+    - $ANDOCK_CI_PATH.andock-ci/andock-ci.yml
+  roles:
+    - andock-ci.build
+
+END
+
+}
+
+case "$1" in
+	build)
+		run_build "$@"
+		;;
+	help)
+		shift
+		;;
+	init|*)
+		[ ! -f "$command_script" ] && \
+			echo-yellow "Unknown command '$*'. See 'ac-p help' for list of available commands" && \
+			exit 1
+
+		shift
+		exec "$command_script" "$@"
+esac
