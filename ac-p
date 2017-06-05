@@ -176,7 +176,7 @@ self_update()
   testing_warn
   echo-green "Updating andock_ci..."
   local new_andock_ci
-  new_fin=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
+  new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
   if_failed_error "andock_ci download failed."
 
 # Check if fin update is required and whether it is a major version
