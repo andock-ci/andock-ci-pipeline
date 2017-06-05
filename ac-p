@@ -1,7 +1,37 @@
 #!/bin/bash
 
+ANDOCK_CI_VERSION=0.0.1
+
+ANDOCK_CI_PATH="/usr/local/bin/ac-p"
+ANDOCK_CI_PATH_UPDATED="/usr/local/bin/ac-p.updated"
+
+URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
+URL_ANDOCK_CI="${URL_REPO}/${ANDOCK_CI_VERSION}/bin/fin"
+
+export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
+export ANSIBLE_RETRY_FILES_ENABLED="False"
 
 #------------------------------ Help functions --------------------------------
+
+# Yes/no confirmation dialog with an optional message
+# @param $1 confirmation message
+_confirm ()
+{
+  # Skip checks if not running interactively (not a tty or not on Windows)
+  while true; do
+    read -p "$1 [y/n]: " answer
+       case "$answer" in
+       [Yy]|[Yy][Ee][Ss] )
+       break
+    ;;
+    [Nn]|[Nn][Oo] )
+   exit 1
+;;
+* )
+echo 'Please answer yes or no.'
+esac
+done
+}
 
 # Nicely prints command help
 # @param $1 command name
@@ -10,21 +40,21 @@
 # @author Oleksii Chekulaiev
 printh ()
 {
-	local COMMAND_COLUMN_WIDTH=25;
-	case "$3" in
-		yellow)
-			printf "  ${yellow}%-${COMMAND_COLUMN_WIDTH}s${NC}" "$1"
-			echo -e "	$2"
-			;;
-		green)
-			printf "  ${green}%-${COMMAND_COLUMN_WIDTH}s${NC}" "$1"
-			echo -e "	$2"
-			;;
-		*)
-			printf "  %-${COMMAND_COLUMN_WIDTH}s" "$1"
-			echo -e "	$2"
-			;;
-	esac
+  local COMMAND_COLUMN_WIDTH=25;
+  case "$3" in
+  yellow)
+    printf "  ${yellow}%-${COMMAND_COLUMN_WIDTH}s${NC}" "$1"
+    echo -e "  $2"
+  ;;
+  green)
+    printf "  ${green}%-${COMMAND_COLUMN_WIDTH}s${NC}" "$1"
+    echo -e "  $2"
+  ;;
+  *)
+    printf "  %-${COMMAND_COLUMN_WIDTH}s" "$1"
+    echo -e "  $2"
+  ;;
+esac
 
 }
 
@@ -33,21 +63,27 @@ echo-green () { echo -e "${green}$1${NC}"; }
 echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
 echo-yellow () { echo -e "${yellow}$1${NC}"; }
 
+# Like if_failed but with more strict error
+if_failed_error ()
+{
+  if [ ! $? -eq 0 ]; then
+    echo-error "$@"
+    exit 1
+  fi
+}
 
 show_help ()
 {
     printh "Andock-ci Pipeline command reference" "" "green"
 
 	echo
-  printh "build" "Runs role: andock-ci.build"
-	printh "up"  "Runs role: andock-ci.fin --tags up"
-	printh "update"  "Runs role: andock-ci.fin --tags update"
-
-	printh "test"  "Runs role: andock-ci.test"
-	printh "reset" "Recreate project services and containers (${yellow}fin help reset${NC})"
-	printh "remove (rm)" "Stop project services and remove their containers (${yellow}fin help remove${NC})"
-	printh "status (ps)" "List project services"
-
+  printh "build" "Run andock-ci.build."
+	printh "fin up"  "Run andock-ci.fin --tags up on andock-ci server"
+	printh "fin update"  "Run andock-ci.fin --tags update"
+	printh "fin test"  "Run andock-ci.fin --tags test"
+	printh "fin stop" "Run andock-ci.fin --tags stop"
+	printh "fin rm" "Run andock-ci.fin --tags rm"
+	printh "tag" "Run andock-ci.tag"
 }
 
 
@@ -57,21 +93,22 @@ get_settings_path ()
 	echo "$PWD/.andock-ci/andock-ci.yml"
 }
 
-
+get_current_branch ()
+{
+  branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
+  branch_name="(unnamed branch)"     # detached HEAD
+  branch_name=${branch_name##refs/heads/}
+	echo $branch_name
+}
 
 run_build ()
 {
 local settings_path=$(get_settings_path)
-export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
-export ANSIBLE_RETRY_FILES_ENABLED="False"
-#ansible-galaxy install andock-ci.build --force
-ansible-playbook -e "@${settings_path}" -e "build_dir=$PWD" /dev/stdin <<END
+local branch_name=$(get_current_branch)
+ansible-galaxy install andock-ci.build --force
+ansible-playbook -e "@${settings_path}" -e "project_dir=$PWD build_dir=$PWD branch=$branch_name" "$@" /dev/stdin <<END
 ---
 - hosts: localhost
-  vars:
-    branch: master
-  tasks:
-    - debug: msg={{build_dir}}
   roles:
     - { role: andock-ci.build, build_dir: "{{ build_dir }}" }
 
@@ -79,18 +116,126 @@ END
 
 }
 
+run_tag ()
+{
+local settings_path=$(get_settings_path)
+local branch_name=$(get_current_branch)
+ansible-galaxy install andock-ci.tag --force
+ansible-playbook -e "@${settings_path}" -e "build_dir=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
+---
+- hosts: andock-ci-build-server
+  gather_facts: no
+  roles:
+    - { role: andock-ci.tag, git_repository_path: "{{ git_source_repository_path }}" }
+
+END
+
+ansible-playbook -e "@${settings_path}" -e "build_dir=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
+---
+- hosts: andock-ci-build-server
+  gather_facts: no
+  roles:
+    - { role: andock-ci.tag, git_repository_path: "{{ git_target_repository_path }}" }
+
+END
+}
+
+
+# Run fin commands through ansible role.
+run_fin ()
+{
+local settings_path=$(get_settings_path)
+local branch_name=$(get_current_branch)
+local tag=$1
+
+case $tag in
+init|update|test|rm)
+echo starting
+;;
+*)
+echo-yellow "Unknown tag '$tag'. See 'ac-p help' for list of available commands" && \
+exit 1
+;;
+esac
+
+shift
+ansible-galaxy install andock-ci.fin --force
+ansible-playbook --tags $tag -e "@${settings_path}" -e "project_dir=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
+---
+- hosts: andock-ci-fin-server
+  gather_facts: no
+  roles:
+    - { role: andock-ci.fin, git_repository_path: "{{ git_target_repository_path }}" }
+
+END
+
+}
+
+self_update()
+{
+  testing_warn
+  echo-green "Updating andock_ci..."
+  local new_andock_ci
+  new_fin=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
+  if_failed_error "andock_ci download failed."
+
+# Check if fin update is required and whether it is a major version
+  local new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
+  if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
+    local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
+    local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
+    if [[ "$current_major_version" != "$new_major_version" ]]; then
+      echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
+      echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
+      echo "You may not be able to use you current Docksal environment if you proceed."
+      echo -e "Please read update documentation: ${yellow}$URL_REPO_UI#updates${NC}"
+      _confirm "Continue with the update?"
+    fi
+
+# saving to file
+    echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
+    if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
+    sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
+    local new_version=$(${ANDOCK_CI_PATH_UPDATED} v)
+    echo "andock-ci $new_version downloaded..."
+
+    ( "$ANDOCK_CI_PATH_UPDATED" update )
+
+    # overwrite old fin
+    sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
+    exit
+  else
+    echo-rewrite "Updating fin... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
+  fi
+}
+
+
 case "$1" in
+  self-update)
+    shift
+    self_update "$@"
+  ;;
 	build)
+		shift
 		run_build "$@"
 		;;
+  tag)
+    shift
+		run_tag "$@"
+    ;;
+  fin)
+		shift
+		run_fin "$@"
+	  ;;
 	help)
 		shift
+    show_help
 		;;
-	init|*)
+	*)
 		[ ! -f "$command_script" ] && \
 			echo-yellow "Unknown command '$*'. See 'ac-p help' for list of available commands" && \
 			exit 1
-
 		shift
 		exec "$command_script" "$@"
 esac
+
