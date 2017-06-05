@@ -106,7 +106,7 @@ run_build ()
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
 ansible-galaxy install andock-ci.build --force
-ansible-playbook -e "@${settings_path}" -e "project_dir=$PWD build_dir=$PWD branch=$branch_name" "$@" /dev/stdin <<END
+ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_dir=$PWD branch=$branch_name" "$@" /dev/stdin <<END
 ---
 - hosts: localhost
   roles:
@@ -160,7 +160,7 @@ esac
 
 shift
 ansible-galaxy install andock-ci.fin --force
-ansible-playbook --tags $tag -e "@${settings_path}" -e "project_dir=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
+ansible-playbook --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-fin-server
   gather_facts: no
