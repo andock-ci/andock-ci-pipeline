@@ -1,20 +1,64 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.1
+ANDOCK_CI_VERSION=v0.0.0
 
 ANDOCK_CI_PATH="/usr/local/bin/ac-p"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/ac-p.updated"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
-URL_ANDOCK_CI="${URL_REPO}/${ANDOCK_CI_VERSION}/bin/fin"
+URL_ANDOCK_CI="${URL_REPO}/${ANDOCK_CI_VERSION}/ac-p"
 
 export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
 export ANSIBLE_RETRY_FILES_ENABLED="False"
+
+
+#------------------------------ SELF UPDATE --------------------------------
+# Based on docksal update script
+# @author Leonid Makarov
+self_update()
+{
+testing_warn
+echo-green "Updating andock_ci..."
+local new_andock_ci
+new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
+if_failed_error "andock_ci download failed."
+
+# Check if fin update is required and whether it is a major version
+local new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
+if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
+local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
+local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
+if [[ "$current_major_version" != "$new_major_version" ]]; then
+echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
+echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
+echo "You may not be able to use you current Docksal environment if you proceed."
+echo -e "Please read update documentation: ${yellow}$URL_REPO_UI#updates${NC}"
+_confirm "Continue with the update?"
+fi
+
+# saving to file
+echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
+if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
+sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
+local new_version=$(${ANDOCK_CI_PATH_UPDATED} v)
+echo "andock-ci $new_version downloaded..."
+
+( "$ANDOCK_CI_PATH_UPDATED" update )
+
+# overwrite old fin
+sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
+exit
+else
+echo-rewrite "Updating fin... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
+fi
+}
+
 
 #------------------------------ Help functions --------------------------------
 
 # Yes/no confirmation dialog with an optional message
 # @param $1 confirmation message
+# @author Leonid Makarov
 _confirm ()
 {
   # Skip checks if not running interactively (not a tty or not on Windows)
@@ -58,12 +102,14 @@ esac
 
 }
 
+# @author Leonid Makarov
 echo-red () { echo -e "${red}$1${NC}"; }
 echo-green () { echo -e "${green}$1${NC}"; }
 echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
 echo-yellow () { echo -e "${yellow}$1${NC}"; }
 
 # Like if_failed but with more strict error
+# @author Leonid Makarov
 if_failed_error ()
 {
   if [ ! $? -eq 0 ]; then
@@ -72,6 +118,7 @@ if_failed_error ()
   fi
 }
 
+#------------------------------ HELP --------------------------------
 show_help ()
 {
     printh "Andock-ci Pipeline command reference" "" "green"
@@ -86,13 +133,16 @@ show_help ()
 	printh "tag" "Run andock-ci.tag"
 }
 
+#----------------------- ENVIRONMENT HELPER FUNCTIONS ------------------------
 
-
+# Returns the path of andock-ci.yml file
 get_settings_path ()
 {
 	echo "$PWD/.andock-ci/andock-ci.yml"
 }
 
+# Returns the git branch name
+# of the current working directory
 get_current_branch ()
 {
   branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
@@ -101,6 +151,9 @@ get_current_branch ()
 	echo $branch_name
 }
 
+#----------------------- ANSIBLE PLAYBOOK WRAPPERS ------------------------
+
+# Ansible playbook wrapper to execute andock-ci.build role
 run_build ()
 {
 local settings_path=$(get_settings_path)
@@ -108,7 +161,8 @@ local branch_name=$(get_current_branch)
 ansible-galaxy install andock-ci.build --force
 ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_dir=$PWD branch=$branch_name" "$@" /dev/stdin <<END
 ---
-- hosts: localhost
+- hosts: andock-ci-build-server
+  gather_facts: no
   roles:
     - { role: andock-ci.build, build_dir: "{{ build_dir }}" }
 
@@ -116,6 +170,7 @@ END
 
 }
 
+# Ansible playbook wrapper to execute andock-ci.tag role
 run_tag ()
 {
 local settings_path=$(get_settings_path)
@@ -141,7 +196,7 @@ END
 }
 
 
-# Run fin commands through ansible role.
+# Ansible playbook wrapper to execute andock-ci.fin role
 run_fin ()
 {
 local settings_path=$(get_settings_path)
@@ -171,44 +226,7 @@ END
 
 }
 
-self_update()
-{
-  testing_warn
-  echo-green "Updating andock_ci..."
-  local new_andock_ci
-  new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
-  if_failed_error "andock_ci download failed."
-
-# Check if fin update is required and whether it is a major version
-  local new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
-  if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
-    local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
-    local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
-    if [[ "$current_major_version" != "$new_major_version" ]]; then
-      echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
-      echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
-      echo "You may not be able to use you current Docksal environment if you proceed."
-      echo -e "Please read update documentation: ${yellow}$URL_REPO_UI#updates${NC}"
-      _confirm "Continue with the update?"
-    fi
-
-# saving to file
-    echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
-    if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
-    sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
-    local new_version=$(${ANDOCK_CI_PATH_UPDATED} v)
-    echo "andock-ci $new_version downloaded..."
-
-    ( "$ANDOCK_CI_PATH_UPDATED" update )
-
-    # overwrite old fin
-    sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-    exit
-  else
-    echo-rewrite "Updating fin... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
-  fi
-}
-
+#----------------------------------- MAIN -------------------------------------
 
 case "$1" in
   self-update)
