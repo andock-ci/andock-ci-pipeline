@@ -1,67 +1,26 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=v0.0.0
+ANDOCK_CI_VERSION=0.0.2
 
 ANDOCK_CI_PATH="/usr/local/bin/ac-p"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/ac-p.updated"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
-URL_ANDOCK_CI="${URL_REPO}/${ANDOCK_CI_VERSION}/ac-p"
+URL_ANDOCK_CI="${URL_REPO}/v${ANDOCK_CI_VERSION}/ac-p"
 
-REQUIREMENTS_ANDCOK_CI_BUILD='v0.0.1'
-REQUIREMENTS_ANDCOK_CI_TAG='v0.0.1'
-REQUIREMENTS_ANDCOK_CI_FIN='v0.0.1'
+REQUIREMENTS_ANDOCK_CI_BUILD='0.0.1'
+REQUIREMENTS_ANDOCK_CI_TAG='0.0.1'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.1'
 
-#------------------------------ SETUP --------------------------------
-# Installs ansible galaxy
-install()
-{
-export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
-export ANSIBLE_RETRY_FILES_ENABLED="False"
-ansible-galaxy install andock-ci.build,${REQUIREMENTS_ANDCOK_CI_BUILD} --force
-ansible-galaxy install andock-ci.tag,${REQUIREMENTS_ANDCOK_CI_TAG} --force
-ansible-galaxy install andock-ci.fin,${REQUIREMENTS_ANDCOK_CI_FIN} --force
-}
-# Based on docksal update script
+
 # @author Leonid Makarov
-self_update()
-{
-testing_warn
-echo-green "Updating andock_ci..."
-local new_andock_ci
-new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
-if_failed_error "andock_ci download failed."
-
-# Check if fin update is required and whether it is a major version
-local new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
-if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
-local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
-local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
-if [[ "$current_major_version" != "$new_major_version" ]]; then
-echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
-echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
-echo "You may not be able to use you current Docksal environment if you proceed."
-echo -e "Please read update documentation: ${yellow}$URL_REPO_UI#updates${NC}"
-_confirm "Continue with the update?"
-fi
-
-# saving to file
-echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
-if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
-sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
-local new_version=$(${ANDOCK_CI_PATH_UPDATED} v)
-echo "andock-ci $new_version downloaded..."
-
-( "$ANDOCK_CI_PATH_UPDATED" update )
-
-# overwrite old fin
-sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-exit
-else
-echo-rewrite "Updating fin... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
-fi
-}
-
+# Console colors
+red='\033[0;91m'
+red_bg='\033[101m'
+green='\033[0;32m'
+green_bg='\033[42m'
+yellow='\033[1;33m'
+NC='\033[0m'
 
 #------------------------------ Help functions --------------------------------
 
@@ -116,6 +75,28 @@ echo-red () { echo -e "${red}$1${NC}"; }
 echo-green () { echo -e "${green}$1${NC}"; }
 echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
 echo-yellow () { echo -e "${yellow}$1${NC}"; }
+echo-error () {
+	echo -e "${red_bg} ERROR: ${NC} ${red}$1${NC}";
+	local unused="$2$3" # avoid IDE warning
+	shift
+	# Echo other parameters indented. Can be used for error description or suggestions.
+	while [[ "$1" != "" ]]; do
+		echo -e "         $1";
+		shift
+	done
+}
+
+# rewrite previous line
+echo-rewrite ()
+{
+	echo -en "\033[1A"
+	echo -e "\033[0K\r""$1"
+}
+echo-rewrite-ok ()
+{
+	echo-rewrite "$1 ${green}[OK]${NC}"
+}
+
 
 # Like if_failed but with more strict error
 # @author Leonid Makarov
@@ -126,11 +107,66 @@ if_failed_error ()
     exit 1
   fi
 }
+#------------------------------ SETUP --------------------------------
+# Installs ansible galaxy
+install()
+{
+  export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
+  export ANSIBLE_RETRY_FILES_ENABLED="False"
+
+  echo-green ""
+  echo-green "Install andock-ci version: ${ANDOCK_CI_VERSION} ..."
+  echo-green ""
+  echo-green "Installing roles:"
+  ansible-galaxy install andock-ci.build,${REQUIREMENTS_ANDOCK_CI_BUILD}
+  ansible-galaxy install andock-ci.tag,${REQUIREMENTS_ANDOCK_CI_TAG}
+  ansible-galaxy install andock-ci.fin,${REQUIREMENTS_ANDOCK_CI_FIN}
+  echo-green ""
+}
+
+# Based on docksal update script
+# @author Leonid Makarov
+self_update()
+{
+  echo-green "Updating andock_ci..."
+  echo-green $URL_ANDOCK_CI
+  local new_andock_ci
+  new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
+  if_failed_error "andock_ci download failed."
+
+# Check if fin update is required and whether it is a major version
+  local new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
+  if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
+  local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
+  local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
+  if [[ "$current_major_version" != "$new_major_version" ]]; then
+    echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
+    echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
+    _confirm "Continue with the update?"
+  fi
+
+# saving to file
+echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
+if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
+sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
+local new_version=$(${ANDOCK_CI_PATH_UPDATED} v)
+echo "andock-ci $new_version downloaded..."
+
+( "$ANDOCK_CI_PATH_UPDATED" update )
+
+# overwrite old fin
+sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
+exit
+else
+echo-rewrite "Updating fin... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
+fi
+}
+
 
 #------------------------------ HELP --------------------------------
 show_help ()
 {
-    printh "Andock-ci Pipeline command reference" "" "green"
+    printh "Andock-ci Pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
 
 	echo
     printh "build" "Run andock-ci.build."
