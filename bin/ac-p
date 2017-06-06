@@ -8,11 +8,20 @@ ANDOCK_CI_PATH_UPDATED="/usr/local/bin/ac-p.updated"
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/${ANDOCK_CI_VERSION}/ac-p"
 
+REQUIREMENTS_ANDCOK_CI_BUILD='v0.0.1'
+REQUIREMENTS_ANDCOK_CI_TAG='v0.0.1'
+REQUIREMENTS_ANDCOK_CI_FIN='v0.0.1'
+
+#------------------------------ SETUP --------------------------------
+# Installs ansible galaxy
+install()
+{
 export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
 export ANSIBLE_RETRY_FILES_ENABLED="False"
-
-
-#------------------------------ SELF UPDATE --------------------------------
+ansible-galaxy install andock-ci.build,${REQUIREMENTS_ANDCOK_CI_BUILD} --force
+ansible-galaxy install andock-ci.tag,${REQUIREMENTS_ANDCOK_CI_TAG} --force
+ansible-galaxy install andock-ci.fin,${REQUIREMENTS_ANDCOK_CI_FIN} --force
+}
 # Based on docksal update script
 # @author Leonid Makarov
 self_update()
@@ -124,7 +133,7 @@ show_help ()
     printh "Andock-ci Pipeline command reference" "" "green"
 
 	echo
-  printh "build" "Run andock-ci.build."
+    printh "build" "Run andock-ci.build."
 	printh "fin up"  "Run andock-ci.fin --tags up on andock-ci server"
 	printh "fin update"  "Run andock-ci.fin --tags update"
 	printh "fin test"  "Run andock-ci.fin --tags test"
@@ -158,7 +167,6 @@ run_build ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-galaxy install andock-ci.build --force
 ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_dir=$PWD branch=$branch_name" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
@@ -175,7 +183,6 @@ run_tag ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-galaxy install andock-ci.tag --force
 ansible-playbook -e "@${settings_path}" -e "build_dir=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
@@ -214,7 +221,6 @@ exit 1
 esac
 
 shift
-ansible-galaxy install andock-ci.fin --force
 ansible-playbook --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-fin-server
@@ -229,26 +235,30 @@ END
 #----------------------------------- MAIN -------------------------------------
 
 case "$1" in
+  install)
+    shift
+    install "$@"
+  ;;
   self-update)
     shift
     self_update "$@"
   ;;
-	build)
-		shift
-		run_build "$@"
-		;;
+   build)
+	shift
+	run_build "$@"
+  ;;
   tag)
     shift
-		run_tag "$@"
-    ;;
+	run_tag "$@"
+  ;;
   fin)
-		shift
-		run_fin "$@"
-	  ;;
-	help)
-		shift
+	shift
+	run_fin "$@"
+  ;;
+  help)
+	shift
     show_help
-		;;
+  ;;
 	*)
 		[ ! -f "$command_script" ] && \
 			echo-yellow "Unknown command '$*'. See 'ac-p help' for list of available commands" && \
