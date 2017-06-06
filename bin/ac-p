@@ -2,15 +2,18 @@
 
 ANDOCK_CI_VERSION=0.0.2
 
+REQUIREMENTS_ANDOCK_CI_BUILD='0.0.1'
+REQUIREMENTS_ANDOCK_CI_TAG='0.0.1'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.1'
+
+
 ANDOCK_CI_PATH="/usr/local/bin/ac-p"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/ac-p.updated"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/v${ANDOCK_CI_VERSION}/ac-p"
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.0.1'
-REQUIREMENTS_ANDOCK_CI_TAG='0.0.1'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.1'
+
 
 
 # @author Leonid Makarov
