@@ -21,7 +21,6 @@ branches:
     - master
 
 before_install:
-  # Install php and curl
   - ./before_install.sh
 
 install:
@@ -33,6 +32,7 @@ install:
 
 script:
   # Check the role/playbook's syntax.
+  - ac-p version
   - git clone git@github.com:andock-ci/drupal-8-demo.git
   - cd drupal-8-demo
   - ac-p build
