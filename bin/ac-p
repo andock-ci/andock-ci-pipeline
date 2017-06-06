@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.2
+ANDOCK_CI_VERSION=0.0.3
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.1'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.1'
@@ -11,7 +11,7 @@ ANDOCK_CI_PATH="/usr/local/bin/ac-p"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/ac-p.updated"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
-URL_ANDOCK_CI="${URL_REPO}/v${ANDOCK_CI_VERSION}/ac-p"
+URL_ANDOCK_CI="${URL_REPO}/master/bin/ac-p"
 
 
 
@@ -120,10 +120,10 @@ install()
   echo-green ""
   echo-green "Install andock-ci version: ${ANDOCK_CI_VERSION} ..."
   echo-green ""
-  echo-green "Installing roles:"
-  ansible-galaxy install andock-ci.build,${REQUIREMENTS_ANDOCK_CI_BUILD}
-  ansible-galaxy install andock-ci.tag,${REQUIREMENTS_ANDOCK_CI_TAG}
-  ansible-galaxy install andock-ci.fin,${REQUIREMENTS_ANDOCK_CI_FIN}
+  echo-green "Install roles:"
+  ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD}
+  ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG}
+  ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN}
   echo-green ""
 }
 
@@ -132,7 +132,6 @@ install()
 self_update()
 {
   echo-green "Updating andock_ci..."
-  echo-green $URL_ANDOCK_CI
   local new_andock_ci
   new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
   if_failed_error "andock_ci download failed."
@@ -152,16 +151,14 @@ self_update()
 echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
 if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
 sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
-local new_version=$(${ANDOCK_CI_PATH_UPDATED} v)
-echo "andock-ci $new_version downloaded..."
-
-( "$ANDOCK_CI_PATH_UPDATED" update )
+echo-green "andock-ci $new_version downloaded..."
 
 # overwrite old fin
 sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
+install
 exit
 else
-echo-rewrite "Updating fin... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
+echo-rewrite "Updating andock-ci... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
 fi
 }
 
@@ -173,12 +170,33 @@ show_help ()
 
 	echo
     printh "build" "Run andock-ci.build."
+    echo
 	printh "fin up"  "Run andock-ci.fin --tags up on andock-ci server"
 	printh "fin update"  "Run andock-ci.fin --tags update"
 	printh "fin test"  "Run andock-ci.fin --tags test"
 	printh "fin stop" "Run andock-ci.fin --tags stop"
 	printh "fin rm" "Run andock-ci.fin --tags rm"
+	echo
 	printh "tag" "Run andock-ci.tag"
+	echo
+	printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
+	echo
+    printh "self-update" "${yellow}Update andock-ci${NC}" "yellow"
+}
+# Display fin version
+# @option --short - Display only the version number
+version ()
+{
+	if [[ $1 == '--short' ]]; then
+		echo "$ANDOCK_CI_VERSION"
+	else
+		echo "andock-ci pipeline (ac-p) version: $ANDOCK_CI_VERSION"
+		echo "Roles:"
+		echo "andock-ci.build: $REQUIREMENTS_ANDOCK_CI_BUILD"
+		echo "andock-ci.fin: $REQUIREMENTS_ANDOCK_CI_FIN"
+		echo "andock-ci.tag: $REQUIREMENTS_ANDOCK_CI_FIN"
+	fi
+
 }
 
 #----------------------- ENVIRONMENT HELPER FUNCTIONS ------------------------
@@ -280,6 +298,7 @@ case "$1" in
   ;;
   self-update)
     shift
+    shift
     self_update "$@"
   ;;
    build)
@@ -298,6 +317,13 @@ case "$1" in
 	shift
     show_help
   ;;
+  -v | v)
+    version --short
+  ;;
+    version)
+	version
+  ;;
+
 	*)
 		[ ! -f "$command_script" ] && \
 			echo-yellow "Unknown command '$*'. See 'ac-p help' for list of available commands" && \
