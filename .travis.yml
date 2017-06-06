@@ -19,6 +19,7 @@ env:
 branches:
   only:
     - master
+    - develop
 
 before_install:
   - ./before_install.sh
@@ -28,6 +29,7 @@ install:
   - if [ "$ANSIBLE_VERSION" = "latest" ]; then pip install ansible; else pip install ansible==$ANSIBLE_VERSION; fi
   - if [ "$ANSIBLE_VERSION" = "latest" ]; then pip install ansible-lint; fi
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install | sh
+  - sudo mkdir /etc/ansible
   - sudo cp tests/ansible/hosts /etc/ansible/hosts
 
 script:
