@@ -14,7 +14,7 @@ URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/ac-p"
 
 
-
+export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
 
 # @author Leonid Makarov
 # Console colors
@@ -114,7 +114,6 @@ if_failed_error ()
 # Installs ansible galaxy
 install()
 {
-  export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
   export ANSIBLE_RETRY_FILES_ENABLED="False"
 
   echo-green ""
