@@ -223,12 +223,12 @@ run_build ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_dir=$PWD branch=$branch_name" "$@" /dev/stdin <<END
+ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   gather_facts: no
   roles:
-    - { role: andock-ci.build, build_dir: "{{ build_dir }}" }
+    - { role: andock-ci.build }
 
 END
 
@@ -239,7 +239,7 @@ run_tag ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-playbook -e "@${settings_path}" -e "build_dir=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
+ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   gather_facts: no
@@ -248,7 +248,7 @@ ansible-playbook -e "@${settings_path}" -e "build_dir=${PWD}/.andock-ci/tag_sour
 
 END
 
-ansible-playbook -e "@${settings_path}" -e "build_dir=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
+ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   gather_facts: no
