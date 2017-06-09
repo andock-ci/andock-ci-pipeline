@@ -15,6 +15,7 @@ URL_ANDOCK_CI="${URL_REPO}/master/bin/ac-p"
 
 
 export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
+export ANSIBLE_HOST_KEY_CHECKING=False
 
 # @author Leonid Makarov
 # Console colors
