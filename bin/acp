@@ -131,7 +131,7 @@ END
 }
 
 
-# Installs ansible galaxy
+# Installs ansible galaxy roles
 install_pipeline()
 {
   export ANSIBLE_RETRY_FILES_ENABLED="False"
@@ -323,7 +323,7 @@ case "$1" in
   ;;
   _install-server)
     shift
-    :install_server
+    install_server
   ;;
 
   self-update)
