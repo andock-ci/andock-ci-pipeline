@@ -110,7 +110,27 @@ if_failed_error ()
     exit 1
   fi
 }
+
+
 #------------------------------ SETUP --------------------------------
+
+# Ansible playbook wrapper to execute andock-ci.fin role
+install_server()
+{
+
+shift
+ansible-playbook --tags install /dev/stdin <<END
+---
+- hosts: localhost
+  gather_facts: no
+  roles:
+    - { role: andock-ci.fin }
+
+END
+
+}
+
+
 # Installs ansible galaxy
 install()
 {
@@ -168,15 +188,18 @@ show_help ()
     printh "Andock-ci Pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
 
 	echo
-    printh "build" "Run andock-ci.build."
+	printh "build/tag" "Project build management on ansible host \"andock-ci-build-server\"" "yellow"
+    printh "build" "Build project on ansible host andock-ci-build-server and commit it to branch-build on target git repository"
+    printh "tag" "Create git tags on both source repository and target repository"
     echo
-	printh "fin up"  "Run andock-ci.fin --tags up on andock-ci server"
-	printh "fin update"  "Run andock-ci.fin --tags update"
-	printh "fin test"  "Run andock-ci.fin --tags test"
-	printh "fin stop" "Run andock-ci.fin --tags stop"
-	printh "fin rm" "Run andock-ci.fin --tags rm"
+
+	printh "fin <command>" "Docksal instance management on ansible host \"andock-ci-fin-server\"" "yellow"
+	printh "fin up"  "Clone target git repository and start project services for your builded branch"
+	printh "fin update"  "Update target git repository and project services "
+	printh "fin test"  "Run tests on target project services"
+	printh "fin stop" "Stop project services"
+	printh "fin rm" "Remove cloned repository and project services"
 	echo
-	printh "tag" "Run andock-ci.tag"
 	echo
 	printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
 	echo
@@ -189,7 +212,7 @@ version ()
 	if [[ $1 == '--short' ]]; then
 		echo "$ANDOCK_CI_VERSION"
 	else
-		echo "andock-ci pipeline (ac-p) version: $ANDOCK_CI_VERSION"
+		echo "andock-ci pipeline (acp) version: $ANDOCK_CI_VERSION"
 		echo "Roles:"
 		echo "andock-ci.build: $REQUIREMENTS_ANDOCK_CI_BUILD"
 		echo "andock-ci.fin: $REQUIREMENTS_ANDOCK_CI_FIN"
@@ -288,13 +311,21 @@ END
 
 }
 
+
+
+
 #----------------------------------- MAIN -------------------------------------
 
 case "$1" in
-  install)
+  _install-pipeline)
     shift
-    install "$@"
+    install_pipeline "$@"
   ;;
+  _install-server)
+    shift
+    :install_server
+  ;;
+
   self-update)
     shift
     shift
@@ -312,7 +343,7 @@ case "$1" in
 	shift
 	run_fin "$@"
   ;;
-  help)
+  help|"")
 	shift
     show_help
   ;;
@@ -322,7 +353,6 @@ case "$1" in
     version)
 	version
   ;;
-
 	*)
 		[ ! -f "$command_script" ] && \
 			echo-yellow "Unknown command '$*'. See 'ac-p help' for list of available commands" && \
