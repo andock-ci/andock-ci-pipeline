@@ -132,7 +132,7 @@ END
 
 
 # Installs ansible galaxy
-install()
+install_pipeline()
 {
   export ANSIBLE_RETRY_FILES_ENABLED="False"
 
