@@ -261,10 +261,9 @@ else
     printh "Build for branch <${branch_name}> starting..." "" "green"
 fi
 
-ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" /dev/stdin <<END
+ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" "$skip_tags" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
-  gather_facts: no
   roles:
     - { role: andock-ci.build }
 
