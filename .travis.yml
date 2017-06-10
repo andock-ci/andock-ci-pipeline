@@ -40,7 +40,7 @@ script:
   - cd drupal-8-demo
   - acp build
   - acp tag
-  - acp fin up
+  - acp fin init
   - acp fin update
   - acp fin test
   - acp fin stop

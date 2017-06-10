@@ -247,6 +247,7 @@ run_build ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
+printh "Build for branch <${branch_name}> starting..." "" "green"
 ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
