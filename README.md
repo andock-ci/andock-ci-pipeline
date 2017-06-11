@@ -34,5 +34,4 @@ Docksal Server:
         [andock-ci-fin-server]
         localhost   ansible_connection=local
 
-
 ```

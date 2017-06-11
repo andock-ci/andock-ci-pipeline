@@ -3,4 +3,4 @@ localhost   ansible_connection=local
 
 [andock-ci-fin-server]
 localhost   ansible_connection=local
-
+ansible_ssh_user=andock-ci
