@@ -279,7 +279,6 @@ local branch_name=$(get_current_branch)
 ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
-  gather_facts: no
   roles:
     - { role: andock-ci.tag, git_repository_path: "{{ git_source_repository_path }}" }
 
@@ -288,7 +287,6 @@ END
 ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
-  gather_facts: no
   roles:
     - { role: andock-ci.tag, git_repository_path: "{{ git_target_repository_path }}" }
 
