@@ -141,9 +141,9 @@ install_pipeline()
   echo-green "Install andock-ci version: ${ANDOCK_CI_VERSION} ..."
   echo-green ""
   echo-green "Install roles:"
-  ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD}
-  ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG}
-  ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN}
+  ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
+  ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG} --force
+  ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --forces
   echo-green ""
 }
 
