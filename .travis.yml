@@ -29,9 +29,11 @@ install:
   - if [ "$ANSIBLE_VERSION" = "latest" ]; then pip install ansible; else pip install ansible==$ANSIBLE_VERSION; fi
   - if [ "$ANSIBLE_VERSION" = "latest" ]; then pip install ansible-lint; fi
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
-  - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-server | sh
+  - curl -fsSL https://raw.githubusercontent.com/andock-ci/server/master/install-server | sh
+
   - sudo mkdir /etc/ansible
   - sudo cp tests/ansible/hosts /etc/ansible/hosts
+
 
 script:
   # Check the role/playbook's syntax.
