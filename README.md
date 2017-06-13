@@ -8,12 +8,6 @@
 * Updates project services after rebuild the project
 
 
-## Install andock-ci fin server on a seperate dev server. (docksal virtual host porx will run on port 80) 
-
-```
-    curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-server | sh
-```
-
 ## Install andock-ci pipeline (acp) on your ci (build) server in one line
 
 ```

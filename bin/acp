@@ -115,23 +115,6 @@ if_failed_error ()
 
 #------------------------------ SETUP --------------------------------
 
-# Ansible playbook wrapper to execute andock-ci.fin role
-install_server()
-{
-
-shift
-ansible-playbook --tags install /dev/stdin <<END
----
-- hosts: localhost
-  gather_facts: no
-  roles:
-    - { role: andock-ci.fin }
-
-END
-
-}
-
-
 # Installs ansible galaxy roles
 install_pipeline()
 {
@@ -332,10 +315,6 @@ case "$1" in
   _install-pipeline)
     shift
     install_pipeline "$@"
-  ;;
-  _install-server)
-    shift
-    install_server
   ;;
 
   self-update)
