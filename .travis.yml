@@ -26,8 +26,8 @@ before_install:
 
 install:
   # Install Ansible.
-  - if [ "$ANSIBLE_VERSION" = "latest" ]; then pip install ansible; else pip install ansible==$ANSIBLE_VERSION; fi
-  - if [ "$ANSIBLE_VERSION" = "latest" ]; then pip install ansible-lint; fi
+  - if [ "$ANSIBLE_VERSION" = "latest" ]; then sudo pip install ansible; else sudo pip install ansible==$ANSIBLE_VERSION; fi
+  - if [ "$ANSIBLE_VERSION" = "latest" ]; then sudo pip install ansible-lint; fi
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/server/master/install-server | sh
 
