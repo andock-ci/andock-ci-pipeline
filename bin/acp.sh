@@ -248,7 +248,7 @@ run_connect ()
     local host=$1
     shift
   fi
-  mkdir -p ~/.andock-ci/hosts
+  mkdir -p ~/.andock-ci
   echo "
 [andock-ci-build-server]
 localhost   ansible_connection=local
@@ -256,7 +256,7 @@ localhost   ansible_connection=local
 [andock-ci-fin-server]
 $host
 ansible_ssh_user=andock-ci
-" > ~/.andock-ci/hosts
+" > $ANDOCK_CI_INVENTORY
 
 }
 
