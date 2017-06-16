@@ -2,5 +2,5 @@
 localhost   ansible_connection=local
 
 [andock-ci-fin-server]
-localhost
+{{ server_host }}
 ansible_ssh_user=andock-ci
