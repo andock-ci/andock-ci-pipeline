@@ -9,7 +9,7 @@ REQUIREMENTS_ANDOCK_CI_FIN='0.0.2'
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
-ANDOCK_CI_INVENTORY="~/.andock-ci/hosts"
+ANDOCK_CI_INVENTORY="$HOME/.andock-ci/hosts"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp"
