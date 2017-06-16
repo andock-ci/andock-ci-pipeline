@@ -1,4 +1,4 @@
 sudo mkdir -p /usr/local/bin &&
-sudo curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/bin/acp -o /usr/local/bin/acp &&
+sudo curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/bin/acp.sh -o /usr/local/bin/acp &&
 sudo chmod +x /usr/local/bin/acp &&
 acp _install-pipeline

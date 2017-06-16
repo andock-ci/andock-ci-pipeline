@@ -9,6 +9,7 @@ REQUIREMENTS_ANDOCK_CI_FIN='0.0.2'
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
+ANDOCK_CI_INVENTORY="~/.andock-ci/hosts"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp"
@@ -112,6 +113,15 @@ if_failed_error ()
   fi
 }
 
+# Yes/no confirmation dialog with an optional message
+# @param $1 confirmation message
+_ask ()
+{
+	# Skip checks if not running interactively (not a tty or not on Windows)
+	read -p "$1 : " answer
+	echo $answer
+}
+
 
 #------------------------------ SETUP --------------------------------
 
@@ -142,27 +152,27 @@ self_update()
 # Check if fin update is required and whether it is a major version
   local new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
   if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
-  local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
-  local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
-  if [[ "$current_major_version" != "$new_major_version" ]]; then
-    echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
-    echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
-    _confirm "Continue with the update?"
+    local current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
+    local new_major_version=$(echo "$new_version" | cut -d "." -f 1)
+    if [[ "$current_major_version" != "$new_major_version" ]]; then
+      echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
+      echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
+      _confirm "Continue with the update?"
+    fi
+
+    # saving to file
+    echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
+    if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
+    sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
+    echo-green "andock-ci $new_version downloaded..."
+
+  # overwrite old fin
+    sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
+    install
+    exit
+  else
+    echo-rewrite "Updating andock-ci... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
   fi
-
-# saving to file
-echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
-if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
-sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
-echo-green "andock-ci $new_version downloaded..."
-
-# overwrite old fin
-sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-install
-exit
-else
-echo-rewrite "Updating andock-ci... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
-fi
 }
 
 
@@ -229,39 +239,41 @@ fi
 
 #----------------------- ANSIBLE PLAYBOOK WRAPPERS ------------------------
 
-# Ansible playbook wrapper to execute andock-ci.build role
+# Connect to andock-ci server
 run_connect ()
 {
+  if [ "$1" = "" ]; then
+    local host=$(_ask "Specify andock-ci server host name or ip?")
+  else
+    local host=$1
+    shift
+  fi
 
-ansible-playbook -e "server_host=$PWD " "$@" /dev/stdin <<END
----
-tasks:
-  - name: Connect
-    template:
-      src: "templates/ansible/hosts"
-      dest: "/etc/ansible/hosts"
-    tags: ['connect']
-    become: true
-END
+  echo "
+[andock-ci-build-server]
+localhost   ansible_connection=local
+
+[andock-ci-fin-server]
+$host
+ansible_ssh_user=andock-ci
+" > /tmp/hosts
 
 }
 
 # Ansible playbook wrapper to execute andock-ci.build role
 run_build ()
 {
+  local settings_path=$(get_settings_path)
+  local branch_name=$(get_current_branch)
 
-
-local settings_path=$(get_settings_path)
-local branch_name=$(get_current_branch)
-
-local skip_tags=""
-if [ "${TRAVIS}" = "true" ]; then
+  local skip_tags=""
+  if [ "${TRAVIS}" = "true" ]; then
     skip_tags="--skip-tags=\"setup,checkout\""
-else
-    printh "Build for branch <${branch_name}> starting..." "" "green"
-fi
+  else
+    printh "Starting build for branch <${branch_name}>..." "" "green"
+  fi
 
-ansible-playbook -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" "$skip_tags" "$@" /dev/stdin <<END
+  ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   roles:
@@ -277,7 +289,7 @@ run_tag ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
+ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   roles:
@@ -285,7 +297,7 @@ ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_sou
 
 END
 
-ansible-playbook -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
+ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   roles:
@@ -313,7 +325,7 @@ exit 1
 esac
 
 shift
-ansible-playbook --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
+ansible-playbook -i $ANDOCK_CI_INVENTORY --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-fin-server
   gather_facts: no
@@ -339,6 +351,10 @@ case "$1" in
     shift
     shift
     self_update "$@"
+  ;;
+   connect)
+	shift
+	run_connect "$@"
   ;;
    build)
 	shift
