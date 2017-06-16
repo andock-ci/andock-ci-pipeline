@@ -315,7 +315,7 @@ local branch_name=$(get_current_branch)
 local tag=$1
 
 case $tag in
-init|update|test|rm)
+init|up|update|test|stop|rm)
 echo starting
 ;;
 *)
