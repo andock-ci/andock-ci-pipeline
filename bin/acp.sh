@@ -254,8 +254,7 @@ run_connect ()
 localhost   ansible_connection=local
 
 [andock-ci-fin-server]
-$host
-ansible_ssh_user=andock-ci
+$host ansible_ssh_user=andock-ci
 " > $ANDOCK_CI_INVENTORY
 
 }
