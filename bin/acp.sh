@@ -4,7 +4,7 @@ ANDOCK_CI_VERSION=0.0.3
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.1'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.1'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.2'
+REQUIREMENTS_ANDOCK_CI_FIN='master'
 
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
@@ -327,7 +327,7 @@ shift
 ansible-playbook -i $ANDOCK_CI_INVENTORY --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-fin-server
-  gather_facts: no
+  gather_facts: false
   roles:
     - { role: andock-ci.fin, git_repository_path: "{{ git_target_repository_path }}" }
 
