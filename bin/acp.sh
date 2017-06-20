@@ -12,7 +12,7 @@ ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
 ANDOCK_CI_INVENTORY="$HOME/.andock-ci/hosts"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
-URL_ANDOCK_CI="${URL_REPO}/master/bin/acp"
+URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
 
 
 export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
