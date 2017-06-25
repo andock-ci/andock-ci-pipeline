@@ -290,6 +290,7 @@ run_build ()
   ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
+  remote_tmp: /tmp
   roles:
     - { role: andock-ci.build }
 
