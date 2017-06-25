@@ -41,9 +41,9 @@ script:
   # Check the version
   - acp version
   - echo $HOME
-  - ls ~
-  - mkdir $HOME/.ansible
-  - pwd ~
+  - ls -al ~
+  - pwd
+  - mkdir .ansible
   # clone source git repository
   - git clone git@github.com:andock-ci/drupal-8-demo.git
   # Copy private ssh keys to checkout target git repository
