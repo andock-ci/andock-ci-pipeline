@@ -128,16 +128,31 @@ _ask ()
 # Installs ansible galaxy roles
 install_pipeline()
 {
-  export ANSIBLE_RETRY_FILES_ENABLED="False"
 
   echo-green ""
-  echo-green "Install andock-ci version: ${ANDOCK_CI_VERSION} ..."
+  echo-green "Installing andock-ci version: ${ANDOCK_CI_VERSION} ..."
+
   echo-green ""
-  echo-green "Install roles:"
+  echo-green "Installing ansible:"
+  apt-get install sudo;
+
+  sudo apt-get update
+  sudo apt-get install whois -y
+  sudo apt-get install build-essential libssl-dev libffi-dev python-dev -y
+
+  set -e
+  wget https://bootstrap.pypa.io/get-pip.py
+  sudo python get-pip.py
+  pip install ansible
+
+  export ANSIBLE_RETRY_FILES_ENABLED="False"
+
+  echo-green "Installing roles:"
   ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
   ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG} --force
   ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
   echo-green ""
+  echo-green "ANDOCK-CI PIPELINE WAS INSTALLED SUCCESSFULLY"
 }
 
 # Based on docksal update script
@@ -243,7 +258,7 @@ fi
 run_connect ()
 {
   if [ "$1" = "" ]; then
-    local host=$(_ask "Specify andock-ci server host name or ip?")
+    local host=$(_ask "Please enter andock-ci server domain or ip")
   else
     local host=$1
     shift
@@ -251,15 +266,15 @@ run_connect ()
   mkdir -p ~/.andock-ci
   echo "
 [andock-ci-build-server]
-localhost   ansible_connection=local
+localhost ansible_connection=local
 
 [andock-ci-fin-server]
-$host ansible_ssh_user=andock-ci
+$host ansible_connection=ssh ansible_ssh_user=andock-ci
 " > $ANDOCK_CI_INVENTORY
 
 }
 
-# Ansible playbook wrapper to execute andock-ci.build role
+# Ansible playbook wrapper for andock-ci.build role
 run_build ()
 {
   local settings_path=$(get_settings_path)

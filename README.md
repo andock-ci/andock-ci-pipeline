@@ -12,7 +12,7 @@
 ### 1. Install andock-ci server
 To install andock-ci server on your server run: (Port 80 and port 443 must be availabel)
 ```
-    curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-server | sh
+    curl -fsSL https://raw.githubusercontent.com/andock-ci/server/master/install-server | sh
 ```
 
 ### 2. Install andock-ci pipeline
