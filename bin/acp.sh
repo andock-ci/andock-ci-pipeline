@@ -9,7 +9,7 @@ REQUIREMENTS_ANDOCK_CI_FIN='0.0.4'
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
-ANDOCK_CI_INVENTORY="$HOME/.andock-ci/hosts"
+ANDOCK_CI_INVENTORY="$HOME/.andock-ci/inventory"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
@@ -264,13 +264,15 @@ run_connect ()
     shift
   fi
   mkdir -p ~/.andock-ci
+  mkdir -p $ANDOCK_CI_INVENTORY
   echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
-
+" > "${ANDOCK_CI_INVENTORY}/build"
+  echo "
 [andock-ci-fin-server]
 $host ansible_connection=ssh ansible_ssh_user=andock-ci
-" > $ANDOCK_CI_INVENTORY
+" > "${ANDOCK_CI_INVENTORY}/fin"
 
 }
 
@@ -287,7 +289,7 @@ run_build ()
     printh "Starting build for branch <${branch_name}>..." "" "green"
   fi
 
-  ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" /dev/stdin <<END
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   roles:
@@ -303,7 +305,7 @@ run_tag ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
+ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   roles:
@@ -311,7 +313,7 @@ ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "build_path=$
 
 END
 
-ansible-playbook -i $ANDOCK_CI_INVENTORY -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
+ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-build-server
   roles:
@@ -339,7 +341,7 @@ exit 1
 esac
 
 shift
-ansible-playbook -i $ANDOCK_CI_INVENTORY --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
+ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
 ---
 - hosts: andock-ci-fin-server
   gather_facts: false
