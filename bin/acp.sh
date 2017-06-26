@@ -9,13 +9,15 @@ REQUIREMENTS_ANDOCK_CI_FIN='0.0.4'
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
-ANDOCK_CI_INVENTORY="$HOME/.andock-ci/inventory"
+ANDOCK_CI_INVENTORY="$HOME/.andock-ci/inventories"
+ANDOCK_CI_PLAYBOOK="$HOME/.andock-ci/playbooks"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
 
 
 export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
+
 export ANSIBLE_HOST_KEY_CHECKING=False
 
 # @author Leonid Makarov
@@ -28,27 +30,6 @@ yellow='\033[1;33m'
 NC='\033[0m'
 
 #------------------------------ Help functions --------------------------------
-
-# Yes/no confirmation dialog with an optional message
-# @param $1 confirmation message
-# @author Leonid Makarov
-_confirm ()
-{
-  # Skip checks if not running interactively (not a tty or not on Windows)
-  while true; do
-    read -p "$1 [y/n]: " answer
-       case "$answer" in
-       [Yy]|[Yy][Ee][Ss] )
-       break
-    ;;
-    [Nn]|[Nn][Oo] )
-   exit 1
-;;
-* )
-echo 'Please answer yes or no.'
-esac
-done
-}
 
 # Nicely prints command help
 # @param $1 command name
@@ -124,6 +105,36 @@ _ask ()
 
 
 #------------------------------ SETUP --------------------------------
+# Generates playbook files
+generate_playbooks()
+{
+  mkdir -p $ANDOCK_CI_PLAYBOOK
+  echo "---
+- hosts: andock-ci-build-server
+  roles:
+    - { role: andock-ci.build }
+" > "${ANDOCK_CI_PLAYBOOK}/build.yml"
+
+  echo "---
+- hosts: andock-ci-fin-server
+  gather_facts: false
+  roles:
+    - { role: andock-ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
+" > "${ANDOCK_CI_PLAYBOOK}/fin.yml"
+
+  echo "---
+- hosts: andock-ci-build-server
+  roles:
+    - { role: andock-ci.tag, git_repository_path: \"{{ git_source_repository_path }}\" }
+" > "${ANDOCK_CI_PLAYBOOK}/tag_source.yml"
+
+  echo "---
+- hosts: andock-ci-build-server
+  roles:
+    - { role: andock-ci.tag, git_repository_path: \"{{ git_target_repository_path }}\" }
+" > "${ANDOCK_CI_PLAYBOOK}/tag_target.yml"
+}
+
 
 # Installs ansible galaxy roles
 install_pipeline()
@@ -146,7 +157,7 @@ install_pipeline()
   pip install ansible
 
   export ANSIBLE_RETRY_FILES_ENABLED="False"
-
+  generate_playbooks
   echo-green "Installing roles:"
   ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
   ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG} --force
@@ -183,7 +194,7 @@ self_update()
 
   # overwrite old fin
     sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-    install
+    install_pipeline
     exit
   else
     echo-rewrite "Updating andock-ci... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
@@ -265,10 +276,12 @@ run_connect ()
   fi
   mkdir -p ~/.andock-ci
   mkdir -p $ANDOCK_CI_INVENTORY
+
   echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
 " > "${ANDOCK_CI_INVENTORY}/build"
+
   echo "
 [andock-ci-fin-server]
 $host ansible_connection=ssh ansible_ssh_user=andock-ci
@@ -289,13 +302,7 @@ run_build ()
     printh "Starting build for branch <${branch_name}>..." "" "green"
   fi
 
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" /dev/stdin <<END
----
-- hosts: andock-ci-build-server
-  roles:
-    - { role: andock-ci.build }
-
-END
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
 
 }
 
@@ -305,21 +312,8 @@ run_tag ()
 {
 local settings_path=$(get_settings_path)
 local branch_name=$(get_current_branch)
-ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" /dev/stdin <<END
----
-- hosts: andock-ci-build-server
-  roles:
-    - { role: andock-ci.tag, git_repository_path: "{{ git_source_repository_path }}" }
-
-END
-
-ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" /dev/stdin <<END
----
-- hosts: andock-ci-build-server
-  roles:
-    - { role: andock-ci.tag, git_repository_path: "{{ git_target_repository_path }}" }
-
-END
+ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_source.yml
+ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
 }
 
 
@@ -341,15 +335,7 @@ exit 1
 esac
 
 shift
-ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" /dev/stdin <<END
----
-- hosts: andock-ci-fin-server
-  gather_facts: false
-  roles:
-    - { role: andock-ci.fin, git_repository_path: "{{ git_target_repository_path }}" }
-
-END
-
+ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
 }
 
 
@@ -367,6 +353,11 @@ case "$1" in
     shift
     shift
     self_update "$@"
+  ;;
+  generate-playbooks)
+    shift
+    shift
+    generate_playbooks
   ;;
    connect)
 	shift
