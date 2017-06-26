@@ -56,7 +56,7 @@ script:
   - cat /home/travis/.andock-ci/hosts
 
 
-  - acp build
+  - acp build -vvv
   - acp tag
 
   # Run all steps without init the environment
