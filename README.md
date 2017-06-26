@@ -24,18 +24,7 @@ You can either install andock-ci pipeline on ci server or use andock-ci docker i
     curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 ```
 
-#### Install andock-ci on your local dev machnine
-
-```
-    curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-docksal-pipeline | sh
-```
-
-Add andock-ci image to your .docksal/docksal.yml file
-```
-  acp:
-    image: andock-ci/acp:1.0
-```
-After installation you will be asked for the andock-ci domain name or ip address. Please provide the host  
+After installation you will be asked for the andock-ci domain name or ip address. Please enter the host  
 
 
 ## 3. Configure your project
