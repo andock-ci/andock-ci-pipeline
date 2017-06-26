@@ -105,7 +105,7 @@ _ask ()
 
 
 #------------------------------ SETUP --------------------------------
-# Generates playbook files
+# Generatec playbook files
 generate_playbooks()
 {
   mkdir -p $ANDOCK_CI_PLAYBOOK
@@ -154,7 +154,7 @@ install_pipeline()
   set -e
   wget https://bootstrap.pypa.io/get-pip.py
   sudo python get-pip.py
-  pip install ansible
+  sudo pip install ansible
 
   export ANSIBLE_RETRY_FILES_ENABLED="False"
   generate_playbooks
@@ -310,32 +310,31 @@ run_build ()
 # Ansible playbook wrapper to execute andock-ci.tag role
 run_tag ()
 {
-local settings_path=$(get_settings_path)
-local branch_name=$(get_current_branch)
-ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_source.yml
-ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
+  local settings_path=$(get_settings_path)
+  local branch_name=$(get_current_branch)
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_source.yml
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
 }
 
 
 # Ansible playbook wrapper to execute andock-ci.fin role
 run_fin ()
 {
-local settings_path=$(get_settings_path)
-local branch_name=$(get_current_branch)
-local tag=$1
+  local settings_path=$(get_settings_path)
+  local branch_name=$(get_current_branch)
+  local tag=$1
 
-case $tag in
-init|up|update|test|stop|rm)
-echo starting
-;;
-*)
-echo-yellow "Unknown tag '$tag'. See 'acp help' for list of available commands" && \
-exit 1
-;;
-esac
-
-shift
-ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  case $tag in
+    init|up|update|test|stop|rm)
+      echo starting
+    ;;
+    *)
+      echo-yellow "Unknown tag '$tag'. See 'acp help' for list of available commands" && \
+      exit 1
+    ;;
+  esac
+  shift
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
 }
 
 
@@ -360,30 +359,30 @@ case "$1" in
     generate_playbooks
   ;;
    connect)
-	shift
-	run_connect "$@"
+	  shift
+	  run_connect "$@"
   ;;
    build)
-	shift
-	run_build "$@"
+	  shift
+	  run_build "$@"
   ;;
   tag)
     shift
-	run_tag "$@"
+	  run_tag "$@"
   ;;
   fin)
-	shift
-	run_fin "$@"
+	  shift
+	  run_fin "$@"
   ;;
   help|"")
-	shift
+	  shift
     show_help
   ;;
   -v | v)
     version --short
   ;;
-    version)
-	version
+  version)
+	  version
   ;;
 	*)
 		[ ! -f "$command_script" ] && \
