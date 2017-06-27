@@ -23,7 +23,11 @@ You can either install andock-ci pipeline on ci server or use andock-ci docker i
 ```
     curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 ```
-
+#### Use andock-ci pipeline inside docksal
+Downlad a small wrapper script which executes andock-ci inside you docksal cli container
+```
+    curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline-docksal | sh
+```
 After installation you will be asked for the andock-ci domain name or ip address. Please enter the host  
 
 
