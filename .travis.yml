@@ -47,8 +47,9 @@ script:
 
   # Connect
   - acp connect "localhost"
-  # Show hosts files
-  - cat /home/travis/.andock-ci/hosts
+  # Show inventory files
+  - cat /home/travis/.andock-ci/inventories/build
+  - cat /home/travis/.andock-ci/inventories/fin
 
 
   - acp build -vvv

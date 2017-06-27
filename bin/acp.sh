@@ -236,7 +236,7 @@ version ()
 		echo "Roles:"
 		echo "andock-ci.build: $REQUIREMENTS_ANDOCK_CI_BUILD"
 		echo "andock-ci.fin: $REQUIREMENTS_ANDOCK_CI_FIN"
-		echo "andock-ci.tag: $REQUIREMENTS_ANDOCK_CI_FIN"
+		echo "andock-ci.tag: $REQUIREMENTS_ANDOCK_CI_TAG"
 	fi
 
 }
