@@ -10,21 +10,22 @@
 ## Installation
 
 ### 1. Install andock-ci server
-To install andock-ci server on your server run: (Port 80 and port 443 must be availabel)
+
+To install andock-ci server on your ubunt/debian based server run: (Port 80 and port 443 must be availabel)
 ```
     curl -fsSL https://raw.githubusercontent.com/andock-ci/server/master/install-server | sh
 ```
 
 ### 2. Install andock-ci pipeline
-You can either install andock-ci pipeline on ci server or use andock-ci docker image to manage it localy 
+You can either install andock-ci pipeline on ci server or use andock-ci inside docksal cli container 
 
 #### Install andock-ci pipeline on your ci server
-
 ```
     curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 ```
+
 #### Use andock-ci pipeline inside docksal
-Downlad a small wrapper script which executes andock-ci inside you docksal cli container
+Downlad a small wrapper script which installs and executes andock-ci inside you docksal cli container
 ```
     curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline-docksal | sh
 ```

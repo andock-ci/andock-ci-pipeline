@@ -1,22 +1,24 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.4
+ANDOCK_CI_VERSION=0.0.5
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.0.1'
-REQUIREMENTS_ANDOCK_CI_TAG='0.0.1'
+REQUIREMENTS_ANDOCK_CI_BUILD='0.0.2'
+REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
 REQUIREMENTS_ANDOCK_CI_FIN='0.0.4'
 
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
-ANDOCK_CI_INVENTORY="$HOME/.andock-ci/inventories"
-ANDOCK_CI_PLAYBOOK="$HOME/.andock-ci/playbooks"
+
+ANDOCK_CI_HOME="$HOME/.andock-ci"
+ANDOCK_CI_INVENTORY="$ANDOCK_CI_HOME/inventories"
+ANDOCK_CI_PLAYBOOK="$ANDOCK_CI_HOME/playbooks"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
 
 
-export ANSIBLE_ROLES_PATH="~/.andock-ci/roles"
+export ANSIBLE_ROLES_PATH="${ANDOCK_CI_HOME}/roles"
 
 export ANSIBLE_HOST_KEY_CHECKING=False
 
@@ -30,6 +32,45 @@ yellow='\033[1;33m'
 NC='\033[0m'
 
 #------------------------------ Help functions --------------------------------
+
+# Check whether we have a working c.
+# Otherwise we are running in a non-tty environment ( e.g. Babun on Windows).
+# We assume the environment is interactive if there is a tty.
+# All other direct checks don't work well in and every environment and scripts.
+# @author Leonid Makarov
+is_tty ()
+{
+
+	[[ "$(/usr/bin/tty || true)" != "not a tty" ]]
+
+	# TODO: rewrite this check using [ -t ] test
+	# http://stackoverflow.com/questions/911168/how-to-detect-if-my-shell-script-is-running-through-a-pipe/911213#911213
+	# 0: stdin, 1: stdout, 2: stderr
+	# [ -t 0 -a -t 1 ]
+}
+
+# Yes/no confirmation dialog with an optional message
+# @param $1 confirmation message
+# @author Leonid Makarov
+_confirm ()
+{
+	# Skip checks if not running interactively (not a tty or not on Windows)
+	if ! is_tty; then return 0; fi
+
+	while true; do
+		read -p "$1 [y/n]: " answer
+		case "$answer" in
+			[Yy]|[Yy][Ee][Ss] )
+				break
+				;;
+			[Nn]|[Nn][Oo] )
+				exit 1
+				;;
+			* )
+				echo 'Please answer yes or no.'
+		esac
+	done
+}
 
 # Nicely prints command help
 # @param $1 command name
@@ -205,15 +246,18 @@ self_update()
 #------------------------------ HELP --------------------------------
 show_help ()
 {
-    printh "Andock-ci Pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
+  printh "Andock-ci Pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
 
+  printh "config" "Project configuration" "yellow"
+  printh "config-generate" "Generate andock-ci configuration for the project"
 	echo
-	printh "build/tag" "Project build management on ansible host \"andock-ci-build-server\"" "yellow"
-    printh "build" "Build project on ansible host andock-ci-build-server and commit it to branch-build on target git repository"
-    printh "tag" "Create git tags on both source repository and target repository"
-    echo
-
-	printh "fin <command>" "Docksal instance management on ansible host \"andock-ci-fin-server\"" "yellow"
+	printh "connect" "Connect andock-ci pipeline to andock-ci server"
+	echo
+	printh "build/tag" "Project build management" "yellow"
+  printh "build" "Build project and commit it to branch-build on target git repository"
+  printh "tag" "Create git tags on both source repository and target repository"
+  echo
+	printh "fin <command>" "Docksal instance management on andock-ci server" "yellow"
 	printh "fin up"  "Clone target git repository and start project services for your builded branch"
 	printh "fin update"  "Update target git repository and project services "
 	printh "fin test"  "Run tests on target project services"
@@ -223,9 +267,9 @@ show_help ()
 	echo
 	printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
 	echo
-    printh "self-update" "${yellow}Update andock-ci${NC}" "yellow"
+  printh "self-update" "${yellow}Update andock-ci${NC}" "yellow"
 }
-# Display fin version
+# Display acp version
 # @option --short - Display only the version number
 version ()
 {
@@ -242,6 +286,23 @@ version ()
 }
 
 #----------------------- ENVIRONMENT HELPER FUNCTIONS ------------------------
+
+# Returns the git origin repository url
+get_git_origin_url ()
+{
+  echo $(git config --get remote.origin.url)
+}
+# Returns the default project name
+get_default_project_name ()
+{
+  if ["${ANDOCK_CI_PROJECT_NAME}" != ""]; then
+
+    echo $(basename "$PWD")
+  else
+    echo ${ANDOCK_CI_PROJECT_NAME}
+  fi
+}
+
 
 # Returns the path of andock-ci.yml file
 get_settings_path ()
@@ -265,7 +326,7 @@ fi
 
 #----------------------- ANSIBLE PLAYBOOK WRAPPERS ------------------------
 
-# Connect to andock-ci server
+# Generate ansible inventory files
 run_connect ()
 {
   if [ "$1" = "" ]; then
@@ -274,7 +335,7 @@ run_connect ()
     local host=$1
     shift
   fi
-  mkdir -p ~/.andock-ci
+  mkdir -p $ANDOCK_CI_HOME
   mkdir -p $ANDOCK_CI_INVENTORY
 
   echo "
@@ -288,10 +349,16 @@ $host ansible_connection=ssh ansible_ssh_user=andock-ci
 " > "${ANDOCK_CI_INVENTORY}/fin"
 
 }
-
+check_connect()
+{
+  if [ ! -f "${ANDOCK_CI_INVENTORY}/$1" ]; then
+    run_connect
+  fi
+}
 # Ansible playbook wrapper for andock-ci.build role
 run_build ()
 {
+  check_connect "build"
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
 
@@ -299,27 +366,30 @@ run_build ()
   if [ "${TRAVIS}" = "true" ]; then
     skip_tags="--skip-tags=\"setup,checkout\""
   else
-    printh "Starting build for branch <${branch_name}>..." "" "green"
+    printh "Building branch <${branch_name}>..." "" "green"
   fi
 
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
-
+  echo-green "BRANCH ${branch_name} BUILDED SUCCESSFULLY"
 }
 
 
 # Ansible playbook wrapper to execute andock-ci.tag role
 run_tag ()
 {
+  check_connect "build"
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_source.yml
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
+  echo-green "TAGS GENERATED SUCCESSFULLY"
 }
 
 
 # Ansible playbook wrapper to execute andock-ci.fin role
 run_fin ()
 {
+  check_connect "fin"
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
   local tag=$1
@@ -335,10 +405,58 @@ run_fin ()
   esac
   shift
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  echo-green "FIN ${tag} FINISHED SUCCESSFULLY"
 }
 
 
+#---------------------------------- GENERATE ---------------------------------
 
+config_generate_empty_hook()
+{
+  echo "---" > ".andock-ci/hooks/$1_tasks.yml"
+
+}
+config_generate ()
+{
+	if [[ -f ".andock-ci/andock-ci.yml" ]]; then
+		echo-yellow ".andock-ci/andock-ci.yml already exists"
+		_confirm "Do you want to proceed and overwrite it?"
+	fi
+
+  local project_name=$(get_default_project_name)
+  local git_source_repository_path=$(get_git_origin_url)
+  local domain=$(_ask 'Please enter project dev domain. [Like: dev.project.com. Url is: branch.dev.project.com]')
+  local git_target_repository_path=$(_ask "Please enter git target repository path. [Leave empty to use ${git_source_repository_path}]")
+  if [ "$git_target_repository_path" = "" ]; then
+    git_target_repository_path=$git_source_repository_path
+  fi
+  mkdir -p ".andock-ci"
+  mkdir -p ".andock-ci/hooks"
+
+  echo "project_name: \"${project_name}\"
+domain: \"${domain}\"
+git_source_repository_path: ${git_source_repository_path}
+git_target_repository_path: ${git_target_repository_path}
+hook_build_tasks: \"{{project_path}}/.andock-ci/hooks/build_tasks.yml\"
+hook_init_tasks: \"{{project_path}}/.andock-ci/hooks/init_tasks.yml\"
+hook_update_tasks: \"{{project_path}}/.andock-ci/hooks/update_tasks.yml\"
+hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
+" > .andock-ci/andock-ci.yml
+
+  config_generate_empty_hook "build"
+
+  config_generate_empty_hook "init"
+
+  config_generate_empty_hook "update"
+
+  config_generate_empty_hook "test"
+
+  if [[ $? == 0 ]]; then
+    echo-green "Configuration was generated. Configure your hooks and start the pipeline with ${yellow}acp build${NC}"
+  else
+    echo-error "Something went wrong. Check error messages above."
+  fi
+}
 
 #----------------------------------- MAIN -------------------------------------
 
@@ -358,6 +476,12 @@ case "$1" in
     shift
     generate_playbooks
   ;;
+  config-generate)
+    shift
+    shift
+    config_generate
+  ;;
+
    connect)
 	  shift
 	  run_connect "$@"
