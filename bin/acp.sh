@@ -4,7 +4,7 @@ ANDOCK_CI_VERSION=0.0.5
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.2'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.4'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.5'
 
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
@@ -135,8 +135,8 @@ if_failed_error ()
   fi
 }
 
-# Yes/no confirmation dialog with an optional message
-# @param $1 confirmation message
+# Ask for input
+# @param $1 Question
 _ask ()
 {
 	# Skip checks if not running interactively (not a tty or not on Windows)
@@ -177,7 +177,7 @@ generate_playbooks()
 }
 
 
-# Installs ansible galaxy roles
+# Install ansible galaxy roles
 install_pipeline()
 {
 
@@ -374,7 +374,7 @@ run_build ()
 }
 
 
-# Ansible playbook wrapper to execute andock-ci.tag role
+# Ansible playbook wrapper to role andock-ci.tag
 run_tag ()
 {
   check_connect "build"
@@ -386,7 +386,7 @@ run_tag ()
 }
 
 
-# Ansible playbook wrapper to execute andock-ci.fin role
+# Ansible playbook wrapper for role andock-ci.fin
 run_fin ()
 {
   check_connect "fin"
