@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.8
+ANDOCK_CI_VERSION=0.0.9
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.3'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
@@ -245,7 +245,7 @@ self_update()
 
   # overwrite old fin
     sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-    install_configuration
+    acp _update-configuration
     exit
   else
     echo-rewrite "Updating andock-ci pipeline... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
@@ -467,7 +467,11 @@ case "$1" in
     shift
     install_pipeline "$@"
   ;;
-
+  _update-configuration)
+    shift
+    shift
+    install_configuration "$@"
+  ;;
   self-update)
     shift
     shift
