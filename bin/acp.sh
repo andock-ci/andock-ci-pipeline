@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.5
+ANDOCK_CI_VERSION=0.0.6
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.2'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
@@ -182,7 +182,7 @@ install_pipeline()
 {
 
   echo-green ""
-  echo-green "Installing andock-ci version: ${ANDOCK_CI_VERSION} ..."
+  echo-green "Installing andock-ci pipeline version: ${ANDOCK_CI_VERSION} ..."
 
   echo-green ""
   echo-green "Installing ansible:"
@@ -197,21 +197,31 @@ install_pipeline()
   sudo python get-pip.py
   sudo pip install ansible
 
+  install_configuration
+  echo-green ""
+  echo-green "andock-ci pipeline was installed successfully"
+}
+install_configuration ()
+{
+  mkdir -p $ANDOCK_CI_INVENTORY
+
   export ANSIBLE_RETRY_FILES_ENABLED="False"
   generate_playbooks
   echo-green "Installing roles:"
   ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
   ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG} --force
   ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
-  echo-green ""
-  echo-green "ANDOCK-CI PIPELINE WAS INSTALLED SUCCESSFULLY"
-}
+  echo "
+[andock-ci-build-server]
+localhost ansible_connection=local
+" > "${ANDOCK_CI_INVENTORY}/build"
 
+}
 # Based on docksal update script
 # @author Leonid Makarov
 self_update()
 {
-  echo-green "Updating andock_ci..."
+  echo-green "Updating andock-ci pipeline..."
   local new_andock_ci
   new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
   if_failed_error "andock_ci download failed."
@@ -231,14 +241,14 @@ self_update()
     echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
     if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
     sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
-    echo-green "andock-ci $new_version downloaded..."
+    echo-green "andock-ci pipeline $new_version downloaded..."
 
   # overwrite old fin
     sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-    install_pipeline
+    install_configuration
     exit
   else
-    echo-rewrite "Updating andock-ci... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
+    echo-rewrite "Updating andock-ci pipeline... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
   fi
 }
 
@@ -246,7 +256,7 @@ self_update()
 #------------------------------ HELP --------------------------------
 show_help ()
 {
-  printh "Andock-ci Pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
+  printh "andock-ci pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
 
   printh "config" "Project configuration" "yellow"
   printh "config-generate" "Generate andock-ci configuration for the project"
@@ -258,7 +268,8 @@ show_help ()
   printh "tag" "Create git tags on both source repository and target repository"
   echo
 	printh "fin <command>" "Docksal instance management on andock-ci server" "yellow"
-	printh "fin up"  "Clone target git repository and start project services for your builded branch"
+	printh "fin init"  "Clone target git repository and start project services for your builded branch"
+	printh "fin up"  "Start project services"
 	printh "fin update"  "Update target git repository and project services "
 	printh "fin test"  "Run tests on target project services"
 	printh "fin stop" "Stop project services"
@@ -296,7 +307,6 @@ get_git_origin_url ()
 get_default_project_name ()
 {
   if ["${ANDOCK_CI_PROJECT_NAME}" != ""]; then
-
     echo $(basename "$PWD")
   else
     echo ${ANDOCK_CI_PROJECT_NAME}
@@ -336,12 +346,6 @@ run_connect ()
     shift
   fi
   mkdir -p $ANDOCK_CI_HOME
-  mkdir -p $ANDOCK_CI_INVENTORY
-
-  echo "
-[andock-ci-build-server]
-localhost ansible_connection=local
-" > "${ANDOCK_CI_INVENTORY}/build"
 
   echo "
 [andock-ci-fin-server]
@@ -358,7 +362,6 @@ check_connect()
 # Ansible playbook wrapper for andock-ci.build role
 run_build ()
 {
-  check_connect "build"
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
 
@@ -370,19 +373,18 @@ run_build ()
   fi
 
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
-  echo-green "BRANCH ${branch_name} BUILDED SUCCESSFULLY"
+  echo-green "branch ${branch_name} was builded successfully"
 }
 
 
 # Ansible playbook wrapper to role andock-ci.tag
 run_tag ()
 {
-  check_connect "build"
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_source.yml
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
-  echo-green "TAGS GENERATED SUCCESSFULLY"
+  echo-green "tags were generated sucessfully"
 }
 
 
@@ -405,7 +407,7 @@ run_fin ()
   esac
   shift
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
-  echo-green "FIN ${tag} FINISHED SUCCESSFULLY"
+  echo-green "fin ${tag} was finished successfully"
 }
 
 
