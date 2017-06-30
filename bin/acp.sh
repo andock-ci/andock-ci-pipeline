@@ -16,7 +16,7 @@ ANDOCK_CI_PLAYBOOK="$ANDOCK_CI_HOME/playbooks"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
-
+DEFAULT_ERROR_MESSAGE="Oops. There is probably something wrong. Check the logs."
 
 export ANSIBLE_ROLES_PATH="${ANDOCK_CI_HOME}/roles"
 
@@ -364,7 +364,7 @@ run_build ()
 {
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
-
+  echo-green "Start building branch <${branch_name}>..."
   local skip_tags=""
   if [ "${TRAVIS}" = "true" ]; then
     skip_tags="--skip-tags=\"setup,checkout\""
@@ -373,18 +373,33 @@ run_build ()
   fi
 
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
-  echo-green "branch ${branch_name} was builded successfully"
+  if [[ $? == 0 ]]; then
+    echo-green "Branch ${branch_name} was builded successfully"
+  else
+    echo-error $DEFAULT_ERROR_MESSAGE
+  fi
+
 }
 
 
 # Ansible playbook wrapper to role andock-ci.tag
 run_tag ()
 {
+  echo-green "Start tagging..."
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_source branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_source.yml
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
-  echo-green "tags were generated sucessfully"
+  if [[ $? == 0 ]]; then
+    ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "build_path=${PWD}/.andock-ci/tag_target branch=${branch_name}-build" "$@" ${ANDOCK_CI_PLAYBOOK}/tag_target.yml
+  else
+    echo-error $DEFAULT_ERROR_MESSAGE
+  fi
+  if [[ $? == 0 ]]; then
+    echo-green "Tags were generated sucessfully"
+  else
+    echo-error $DEFAULT_ERROR_MESSAGE
+  fi
+
 }
 
 
@@ -392,6 +407,7 @@ run_tag ()
 run_fin ()
 {
   check_connect "fin"
+  echo-green "Start remote fin ${tag}..."
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
   local tag=$1
@@ -407,7 +423,11 @@ run_fin ()
   esac
   shift
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
-  echo-green "fin ${tag} was finished successfully"
+  if [[ $? == 0 ]]; then
+    echo-green "fin ${tag} was finished successfully"
+  else
+    echo-error $DEFAULT_ERROR_MESSAGE
+  fi
 }
 
 
@@ -456,7 +476,7 @@ hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
   if [[ $? == 0 ]]; then
     echo-green "Configuration was generated. Configure your hooks and start the pipeline with ${yellow}acp build${NC}"
   else
-    echo-error "Something went wrong. Check error messages above."
+    echo-error $DEFAULT_ERROR_MESSAGE
   fi
 }
 
