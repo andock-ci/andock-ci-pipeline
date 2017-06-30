@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.9
+ANDOCK_CI_VERSION=0.0.10
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.3'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
@@ -72,6 +72,27 @@ _confirm ()
 	done
 }
 
+# Yes/no confirmation dialog with an optional message
+# @param $1 confirmation message
+_confirmAndReturn ()
+{
+	while true; do
+		read -p "$1 [y/n]: " answer
+		case "$answer" in
+			[Yy]|[Yy][Ee][Ss] )
+				echo 0
+				break
+				;;
+			[Nn]|[Nn][Oo] )
+				echo 1
+				break
+				;;
+			* )
+				echo 'Please answer yes or no.'
+		esac
+	done
+}
+
 # Nicely prints command help
 # @param $1 command name
 # @param $2 description
@@ -99,9 +120,13 @@ esac
 
 # @author Leonid Makarov
 echo-red () { echo -e "${red}$1${NC}"; }
+# @author Leonid Makarov
 echo-green () { echo -e "${green}$1${NC}"; }
+# @author Leonid Makarov
 echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
+# @author Leonid Makarov
 echo-yellow () { echo -e "${yellow}$1${NC}"; }
+# @author Leonid Makarov
 echo-error () {
 	echo -e "${red_bg} ERROR: ${NC} ${red}$1${NC}";
 	local unused="$2$3" # avoid IDE warning
@@ -113,12 +138,15 @@ echo-error () {
 	done
 }
 
+# @author Leonid Makarov
 # rewrite previous line
 echo-rewrite ()
 {
 	echo -en "\033[1A"
 	echo -e "\033[0K\r""$1"
 }
+
+# @author Leonid Makarov
 echo-rewrite-ok ()
 {
 	echo-rewrite "$1 ${green}[OK]${NC}"
@@ -260,6 +288,8 @@ show_help ()
 
   printh "config" "Project configuration" "yellow"
   printh "config-generate" "Generate andock-ci configuration for the project"
+  printh "travis-generate" "Generate .travis.yml template"
+  printh "gitlab-generate" "Generate .gitlab.yml template"
 	echo
 	printh "connect" "Connect andock-ci pipeline to andock-ci server"
 	echo
@@ -324,14 +354,16 @@ get_settings_path ()
 # of the current working directory
 get_current_branch ()
 {
-if [ "${TRAVIS}" = "true" ]; then
-  echo $TRAVIS_BRANCH
-else
-  branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
-  branch_name="(unnamed branch)"     # detached HEAD
-  branch_name=${branch_name##refs/heads/}
-  echo $branch_name
-fi
+  if [ "${TRAVIS}" = "true" ]; then
+    echo $TRAVIS_BRANCH
+  elif [ "${GITLAB_CI}" = "true" ]; then
+    echo $CI_COMMIT_REF_NAME
+  else
+    branch_name="$(git symbolic-ref HEAD 2>/dev/null)" ||
+    branch_name="(unnamed branch)"     # detached HEAD
+    branch_name=${branch_name##refs/heads/}
+    echo $branch_name
+  fi
 }
 
 #----------------------- ANSIBLE PLAYBOOK WRAPPERS ------------------------
@@ -377,6 +409,7 @@ run_build ()
     echo-green "Branch ${branch_name} was builded successfully"
   else
     echo-error $DEFAULT_ERROR_MESSAGE
+    exit 1;
   fi
 
 }
@@ -398,6 +431,7 @@ run_tag ()
     echo-green "Tags were generated sucessfully"
   else
     echo-error $DEFAULT_ERROR_MESSAGE
+    exit 1;
   fi
 
 }
@@ -407,7 +441,7 @@ run_tag ()
 run_fin ()
 {
   check_connect "fin"
-  echo-green "Start remote fin ${tag}..."
+  echo-green "Start fin ${tag}..."
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
   local tag=$1
@@ -427,16 +461,115 @@ run_fin ()
     echo-green "fin ${tag} was finished successfully"
   else
     echo-error $DEFAULT_ERROR_MESSAGE
+    exit 1;
   fi
 }
 
 
 #---------------------------------- GENERATE ---------------------------------
-
+config_generate_fin_hook()
+{
+  echo "- name: Init andock-ci environment
+  command: \"fin $1\"
+  args:
+    chdir: \"{{ docroot_path }}\"
+  when: instance_exists_before == false
+" > ".andock-ci/hooks/$1_tasks.yml"
+}
+config_generate_compser_hook()
+{
+  echo "- name: composer install
+  command: \"composer install\"
+  args:
+    chdir: \"{{ checkout_path }}\"
+" > ".andock-ci/hooks/$1_tasks.yml"
+}
 config_generate_empty_hook()
 {
   echo "---" > ".andock-ci/hooks/$1_tasks.yml"
 
+}
+
+gitlab_generate ()
+{
+echo "stages:
+  - build
+  - deploy
+
+build:
+  stage: build
+  script:
+    - acp build
+  only:
+    - branches
+
+tag:
+  stage: deploy
+  script:
+    - acp tag
+  when: manual
+
+fin_up:
+  stage: deploy
+  script:
+    - acp fin up
+  when: manual
+
+fin_update:
+  stage: deploy
+  script:
+    - acp fin update
+  only:
+    - branches
+
+fin_test:
+  stage: deploy
+  script:
+    - acp fin tests
+  when: manual
+
+fin_rm:
+  stage: deploy
+  script:
+    - acp fin rm
+  when: manual
+
+
+" > ".gitlab-ci.yml"
+  echo-green ".gitlab.yml was generated."
+}
+travis_generate ()
+{
+echo "---
+sudo: required
+dist: trusty
+
+language: php
+php: \"7.0\"
+
+services:
+  - docker
+
+env:
+  global:
+  - ENCRYPTION_LABEL: \"LABEL\"
+
+before_install:
+  - ./before_install.sh
+
+install:
+  - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
+
+script:
+  - acp connect \"dev.key-tec.de\"
+  - acp version
+  - acp build
+  - acp fin init
+  - acp fin update
+  - acp fin test
+
+" > ".travis.yml"
+echo-green ".travis.yml was generated."
 }
 config_generate ()
 {
@@ -464,10 +597,13 @@ hook_init_tasks: \"{{project_path}}/.andock-ci/hooks/init_tasks.yml\"
 hook_update_tasks: \"{{project_path}}/.andock-ci/hooks/update_tasks.yml\"
 hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
 " > .andock-ci/andock-ci.yml
+  if [[ $(_confirmAndReturn "Do you use composer to build your project?") == 0 ]]; then
+    config_generate_compser_hook "build"
+  else
+    config_generate_empty_hook "build"
+  fi
 
-  config_generate_empty_hook "build"
-
-  config_generate_empty_hook "init"
+  config_generate_fin_hook "init"
 
   config_generate_empty_hook "update"
 
@@ -501,6 +637,16 @@ case "$1" in
     shift
     shift
     generate_playbooks
+  ;;
+  travis-generate)
+    shift
+    shift
+    travis_generate
+  ;;
+  gitlab-generate)
+    shift
+    shift
+    gitlab_generate
   ;;
   config-generate)
     shift
