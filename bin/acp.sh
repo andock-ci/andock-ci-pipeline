@@ -488,10 +488,11 @@ run_fin ()
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
     echo-green "fin ${tag} was finished successfully."
-    local url="http://${branch_name}.${config_domain}"
+
     local domains=$(echo $config_domain | tr " " "\n")
     for domain in $domains
     do
+        local url="http://${branch_name}.${domain}"
         echo-green  "See [$url]"
     done
   else
