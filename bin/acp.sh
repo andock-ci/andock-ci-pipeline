@@ -477,7 +477,7 @@ run_fin ()
 
   case $tag in
     init|up|update|test|stop|rm)
-      echo-green "Starting fin ${tag}..."
+      echo-green "Start fin ${tag}..."
     ;;
     *)
       echo-yellow "Unknown tag '$tag'. See 'acp help' for list of available commands" && \
