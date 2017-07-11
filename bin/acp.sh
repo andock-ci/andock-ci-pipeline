@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.10
+ANDOCK_CI_VERSION=0.0.11
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.3'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
@@ -32,6 +32,23 @@ yellow='\033[1;33m'
 NC='\033[0m'
 
 #------------------------------ Help functions --------------------------------
+# parse yml file:
+  # See https://gist.github.com/pkuczynski/8665367
+_parse_yaml() {
+   local prefix=$2
+   local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+   sed -ne "s|^\($s\)\($w\)$s:$s\"\(.*\)\"$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  $1 |
+   awk -F$fs '{
+      indent = length($1)/2;
+      vname[indent] = $2;
+      for (i in vname) {if (i > indent) {delete vname[i]}}
+      if (length($3) > 0) {
+         vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+         printf("%s%s%s=\"%s\"\n", "'$prefix'",vn, $2, $3);
+      }
+   }'
+}
 
 # Check whether we have a working c.
 # Otherwise we are running in a non-tty environment ( e.g. Babun on Windows).
@@ -214,7 +231,6 @@ install_pipeline()
 
   echo-green ""
   echo-green "Installing ansible:"
-  apt-get install sudo;
 
   sudo apt-get update
   sudo apt-get install whois -y
@@ -347,7 +363,18 @@ get_default_project_name ()
 # Returns the path of andock-ci.yml file
 get_settings_path ()
 {
-	echo "$PWD/.andock-ci/andock-ci.yml"
+  local path="$PWD/.andock-ci/andock-ci.yml"
+  if [ ! -f $path ]; then
+    echo-error "Settings not found. Run acp config-generate"
+    exit 1;
+  fi
+	echo $path
+}
+
+get_settings()
+{
+  local settings_path=$(get_settings_path)
+  eval $(_parse_yaml $settings_path "config_")
 }
 
 # Returns the git branch name
@@ -385,6 +412,7 @@ $host ansible_connection=ssh ansible_ssh_user=andock-ci
 " > "${ANDOCK_CI_INVENTORY}/fin"
 
 }
+
 check_connect()
 {
   if [ ! -f "${ANDOCK_CI_INVENTORY}/$1" ]; then
@@ -400,8 +428,6 @@ run_build ()
   local skip_tags=""
   if [ "${TRAVIS}" = "true" ]; then
     skip_tags="--skip-tags=\"setup,checkout\""
-  else
-    printh "Building branch <${branch_name}>..." "" "green"
   fi
 
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
@@ -441,14 +467,18 @@ run_tag ()
 run_fin ()
 {
   check_connect "fin"
-  echo-green "Start fin ${tag}..."
+
   local settings_path=$(get_settings_path)
+  get_settings
+
   local branch_name=$(get_current_branch)
+  local url="http://${branch_name}.${config_domain}"
+
   local tag=$1
 
   case $tag in
     init|up|update|test|stop|rm)
-      echo starting
+      echo-green "Starting fin ${tag}..."
     ;;
     *)
       echo-yellow "Unknown tag '$tag'. See 'acp help' for list of available commands" && \
@@ -458,7 +488,7 @@ run_fin ()
   shift
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
-    echo-green "fin ${tag} was finished successfully"
+    echo-green "fin ${tag} was finished successfully. See: $url"
   else
     echo-error $DEFAULT_ERROR_MESSAGE
     exit 1;
@@ -492,48 +522,85 @@ config_generate_empty_hook()
 
 gitlab_generate ()
 {
-echo "stages:
+get_settings
+echo "#generated with andock-ci version: \"${ANDOCK_CI_VERSION}\"
+stages:
   - build
   - deploy
+  - test deployment
+  - clean
 
-build:
+0:1 build:
   stage: build
   script:
     - acp build
+  cache:
+   key: \"\$CI_COMMIT_REF_NAME\"
+   paths:
+   - docroot
+   - vendor
   only:
     - branches
+  except:
+    - /.*-build$/
 
-tag:
-  stage: deploy
+0:3 tag:
+  stage: build
   script:
     - acp tag
   when: manual
+  only:
+    - branches
+  except:
+    - /.*-build$/
 
-fin_up:
-  stage: deploy
+0:2 create environment:
+  stage: build
   script:
-    - acp fin up
+    - acp fin init
   when: manual
+  only:
+    - branches
+  except:
+    - /.*-build$/
+  environment:
+    name: $config_project_name.\$CI_COMMIT_REF_NAME
+    url: http://\$CI_COMMIT_REF_NAME.$config_domain
 
-fin_update:
+0:2 update environment:
   stage: deploy
   script:
     - acp fin update
+  except:
+    - /.*-build$/
   only:
     - branches
+  environment:
+    name: $config_project_name.\$CI_COMMIT_REF_NAME
+    url: http://\$CI_COMMIT_REF_NAME.$config_domain
 
-fin_test:
-  stage: deploy
+0:1 test:
+  stage: test deployment
   script:
-    - acp fin tests
+    - acp fin test
   when: manual
+  except:
+    - /.*-build$/
+  only:
+    - branches
+  environment:
+    name: $config_project_name.\$CI_COMMIT_REF_NAME
+    url: http://\$CI_COMMIT_REF_NAME.$config_domain
 
-fin_rm:
-  stage: deploy
+rm:
+  stage: clean
   script:
     - acp fin rm
   when: manual
-
+  except:
+    - /.*-build$/
+  only:
+    - branches
 
 " > ".gitlab-ci.yml"
   echo-green ".gitlab.yml was generated."
@@ -561,7 +628,7 @@ install:
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 
 script:
-  - acp connect \"dev.key-tec.de\"
+  - acp connect \"ANDOCK-CI-SERVER-VERSION\"
   - acp version
   - acp build
   - acp fin init
@@ -569,7 +636,7 @@ script:
   - acp fin test
 
 " > ".travis.yml"
-echo-green ".travis.yml was generated."
+  echo-green ".travis.yml was generated."
 }
 config_generate ()
 {
