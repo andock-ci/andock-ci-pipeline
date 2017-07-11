@@ -1,10 +1,10 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.11
+ANDOCK_CI_VERSION=0.0.12
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.0.3'
+REQUIREMENTS_ANDOCK_CI_BUILD='0.0.4'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.5'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.6'
 
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
@@ -303,17 +303,17 @@ show_help ()
   printh "andock-ci pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
 
   printh "config" "Project configuration" "yellow"
-  printh "config-generate" "Generate andock-ci configuration for the project"
-  printh "travis-generate" "Generate .travis.yml template"
-  printh "gitlab-generate" "Generate .gitlab.yml template"
+  printh "generate:config" "Generate andock-ci configuration for the project"
+  printh "generate:travis" "Generate .travis.yml template"
+  printh "generate:gitlab" "Generate .gitlab.yml template"
 	echo
 	printh "connect" "Connect andock-ci pipeline to andock-ci server"
 	echo
 	printh "build/tag" "Project build management" "yellow"
-  printh "build" "Build project and commit it to branch-build on target git repository"
-  printh "tag" "Create git tags on both source repository and target repository"
+    printh "build" "Build project and commit it to branch-build on target git repository"
+    printh "tag" "Create git tags on both source repository and target repository"
   echo
-	printh "fin <command>" "Docksal instance management on andock-ci server" "yellow"
+	printh "fin <command>" "Docksal environment management on andock-ci server" "yellow"
 	printh "fin init"  "Clone target git repository and start project services for your builded branch"
 	printh "fin up"  "Start project services"
 	printh "fin update"  "Update target git repository and project services "
@@ -424,7 +424,7 @@ run_build ()
 {
   local settings_path=$(get_settings_path)
   local branch_name=$(get_current_branch)
-  echo-green "Start building branch <${branch_name}>..."
+  echo-green "Building branch <${branch_name}>..."
   local skip_tags=""
   if [ "${TRAVIS}" = "true" ]; then
     skip_tags="--skip-tags=\"setup,checkout\""
@@ -472,7 +472,6 @@ run_fin ()
   get_settings
 
   local branch_name=$(get_current_branch)
-  local url="http://${branch_name}.${config_domain}"
 
   local tag=$1
 
@@ -488,7 +487,13 @@ run_fin ()
   shift
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
-    echo-green "fin ${tag} was finished successfully. See: $url"
+    echo-green "fin ${tag} was finished successfully."
+    local url="http://${branch_name}.${config_domain}"
+    local domains=$(echo $config_domain | tr " " "\n")
+    for domain in $domains
+    do
+        echo-green  "See [$url]"
+    done
   else
     echo-error $DEFAULT_ERROR_MESSAGE
     exit 1;
@@ -503,7 +508,7 @@ config_generate_fin_hook()
   command: \"fin $1\"
   args:
     chdir: \"{{ docroot_path }}\"
-  when: instance_exists_before == false
+  when: environment_exists_before == false
 " > ".andock-ci/hooks/$1_tasks.yml"
 }
 config_generate_compser_hook()
@@ -705,17 +710,17 @@ case "$1" in
     shift
     generate_playbooks
   ;;
-  travis-generate)
+  generate:travis)
     shift
     shift
     travis_generate
   ;;
-  gitlab-generate)
+  generate:gitlab)
     shift
     shift
     gitlab_generate
   ;;
-  config-generate)
+  generate:config)
     shift
     shift
     config_generate
