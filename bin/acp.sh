@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.12
+ANDOCK_CI_VERSION=0.0.13
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.4'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
@@ -71,9 +71,6 @@ is_tty ()
 # @author Leonid Makarov
 _confirm ()
 {
-	# Skip checks if not running interactively (not a tty or not on Windows)
-	if ! is_tty; then return 0; fi
-
 	while true; do
 		read -p "$1 [y/n]: " answer
 		case "$answer" in
@@ -352,20 +349,20 @@ get_git_origin_url ()
 # Returns the default project name
 get_default_project_name ()
 {
-  if ["${ANDOCK_CI_PROJECT_NAME}" != ""]; then
+  if [ "${ANDOCK_CI_PROJECT_NAME}" != "" ]; then
     echo $(basename "$PWD")
   else
-    echo ${ANDOCK_CI_PROJECT_NAME}
+    echo "${ANDOCK_CI_PROJECT_NAME}"
   fi
 }
 
 
-# Returns the path of andock-ci.yml file
+# Returns the path to andock-ci.yml
 get_settings_path ()
 {
   local path="$PWD/.andock-ci/andock-ci.yml"
   if [ ! -f $path ]; then
-    echo-error "Settings not found. Run acp config-generate"
+    echo-error "Settings not found. Run acp generate:config"
     exit 1;
   fi
 	echo $path
@@ -503,7 +500,7 @@ run_fin ()
 
 
 #---------------------------------- GENERATE ---------------------------------
-config_generate_fin_hook()
+generate_config_fin_hook()
 {
   echo "- name: Init andock-ci environment
   command: \"fin $1\"
@@ -512,7 +509,7 @@ config_generate_fin_hook()
   when: environment_exists_before == false
 " > ".andock-ci/hooks/$1_tasks.yml"
 }
-config_generate_compser_hook()
+generate_config_compser_hook()
 {
   echo "- name: composer install
   command: \"composer install\"
@@ -520,13 +517,13 @@ config_generate_compser_hook()
     chdir: \"{{ checkout_path }}\"
 " > ".andock-ci/hooks/$1_tasks.yml"
 }
-config_generate_empty_hook()
+generate_config_empty_hook()
 {
   echo "---" > ".andock-ci/hooks/$1_tasks.yml"
 
 }
 
-gitlab_generate ()
+generate_gitlab()
 {
 get_settings
 echo "#generated with andock-ci version: \"${ANDOCK_CI_VERSION}\"
@@ -611,7 +608,7 @@ rm:
 " > ".gitlab-ci.yml"
   echo-green ".gitlab.yml was generated."
 }
-travis_generate ()
+generate_travis()
 {
 echo "---
 sudo: required
@@ -644,7 +641,7 @@ script:
 " > ".travis.yml"
   echo-green ".travis.yml was generated."
 }
-config_generate ()
+generate_config ()
 {
 	if [[ -f ".andock-ci/andock-ci.yml" ]]; then
 		echo-yellow ".andock-ci/andock-ci.yml already exists"
@@ -671,16 +668,16 @@ hook_update_tasks: \"{{project_path}}/.andock-ci/hooks/update_tasks.yml\"
 hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
 " > .andock-ci/andock-ci.yml
   if [[ $(_confirmAndReturn "Do you use composer to build your project?") == 0 ]]; then
-    config_generate_compser_hook "build"
+    generate_config_compser_hook "build"
   else
-    config_generate_empty_hook "build"
+    generate_config_empty_hook "build"
   fi
 
-  config_generate_fin_hook "init"
+  generate_config_fin_hook "init"
 
-  config_generate_empty_hook "update"
+  generate_config_empty_hook "update"
 
-  config_generate_empty_hook "test"
+  generate_config_empty_hook "test"
 
   if [[ $? == 0 ]]; then
     echo-green "Configuration was generated. Configure your hooks and start the pipeline with ${yellow}acp build${NC}"
@@ -713,18 +710,15 @@ case "$1" in
   ;;
   generate:travis)
     shift
-    shift
-    travis_generate
+    generate_travis
   ;;
   generate:gitlab)
     shift
-    shift
-    gitlab_generate
+    generate_gitlab
   ;;
   generate:config)
     shift
-    shift
-    config_generate
+    generate_config
   ;;
 
    connect)
