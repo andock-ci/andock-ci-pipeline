@@ -50,7 +50,6 @@ script:
   - cat /home/travis/.andock-ci/inventories/build
   - cat /home/travis/.andock-ci/inventories/fin
 
-
   - acp build
   - acp tag
 

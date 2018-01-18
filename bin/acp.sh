@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.16
+ANDOCK_CI_VERSION=0.0.17
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.7'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
@@ -237,6 +237,7 @@ install_pipeline()
   wget https://bootstrap.pypa.io/get-pip.py
   sudo python get-pip.py
   sudo pip install ansible
+  which ssh-agent || ( sudo apt-get update -y && sudo apt-get install openssh-client -y )
 
   install_configuration
   echo-green ""
@@ -299,16 +300,18 @@ show_help ()
 {
   printh "andock-ci pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
 
+
+	printh "connect" "Connect andock-ci pipeline to andock-ci server"
+	printh "ssh-add <ssh-key>" "Add private SSH key <ssh-key> variable to the agent store. Useful to add secret ci variables to the agent store."
+	echo
   printh "config" "Project configuration" "yellow"
   printh "generate:config" "Generate andock-ci configuration for the project"
   printh "generate:travis" "Generate .travis.yml template"
   printh "generate:gitlab" "Generate .gitlab.yml template"
 	echo
-	printh "connect" "Connect andock-ci pipeline to andock-ci server"
-	echo
-	printh "build/tag" "Project build management" "yellow"
-    printh "build" "Build project and commit it to branch-build on target git repository"
-    printh "tag" "Create git tags on both source repository and target repository"
+  printh "build/tag" "Project build management" "yellow"
+  printh "build" "Build project and commit it to branch-build on target git repository"
+  printh "tag" "Create git tags on both source repository and target repository"
   echo
 	printh "fin <command>" "Docksal environment management on andock-ci server" "yellow"
 	printh "fin init"  "Clone target git repository and start project services for your builded branch"
@@ -416,7 +419,8 @@ check_connect()
     run_connect
   fi
 }
-# Ansible playbook wrapper for andock-ci.build role
+
+# Ansible playbook wrapper for andock-ci.build role.
 run_build ()
 {
   local settings_path=$(get_settings_path)
@@ -641,6 +645,7 @@ script:
 " > ".travis.yml"
   echo-green ".travis.yml was generated."
 }
+
 generate_config ()
 {
 	if [[ -f ".andock-ci/andock-ci.yml" ]]; then
@@ -686,6 +691,16 @@ hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
   fi
 }
 
+# Add ssh key.
+ssh_add ()
+{
+  eval $(ssh-agent -s)
+  echo "$1" | tr -d '\r' | ssh-add - > /dev/null
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+  echo-green "SSH key was added to keystore."
+}
+
 #----------------------------------- MAIN -------------------------------------
 
 case "$1" in
@@ -702,6 +717,11 @@ case "$1" in
     shift
     shift
     self_update "$@"
+  ;;
+  ssh-add)
+    shift
+    shift
+    ssh_add "$@"
   ;;
   generate-playbooks)
     shift
