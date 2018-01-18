@@ -695,7 +695,7 @@ hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
 ssh_add ()
 {
   eval $(ssh-agent -s)
-  echo "$1" | tr -d '\r' | ssh-add - > /dev/null
+  echo "$*" | tr -d '\r' | ssh-add - > /dev/null
   mkdir -p ~/.ssh
   chmod 700 ~/.ssh
   echo-green "SSH key was added to keystore."
@@ -719,7 +719,6 @@ case "$1" in
     self_update "$@"
   ;;
   ssh-add)
-    shift
     shift
     ssh_add "$@"
   ;;
@@ -774,4 +773,6 @@ case "$1" in
 		shift
 		exec "$command_script" "$@"
 esac
+
+
 
