@@ -1,10 +1,10 @@
 #!/bin/bash
 
-ANDOCK_CI_VERSION=0.0.18
+ANDOCK_CI_VERSION=0.0.19
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.7'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.6'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.7'
 
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
@@ -302,7 +302,8 @@ show_help ()
 
 
 	printh "connect" "Connect andock-ci pipeline to andock-ci server"
-	printh "ssh-add <ssh-key>" "Add private SSH key <ssh-key> variable to the agent store. Useful to add secret ci variables to the agent store."
+	printh "(.) ssh-add <ssh-key>" "Add private SSH key <ssh-key> variable to the agent store. Useful to add secret ci variables to the agent store. "
+	printh "                           Add a \".\" in front to run the command in the current shell. (E.g. \". acp ssh-add \$KEY\")"
 	echo
   printh "config" "Project configuration" "yellow"
   printh "generate:config" "Generate andock-ci configuration for the project"
