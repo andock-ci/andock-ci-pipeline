@@ -230,13 +230,22 @@ install_pipeline()
   echo-green "Installing ansible:"
 
   sudo apt-get update
-  sudo apt-get install whois -y
-  sudo apt-get install build-essential libssl-dev libffi-dev python-dev -y
+  sudo apt-get install whois sudo build-essential libssl-dev libffi-dev python-dev -y
 
   set -e
   wget https://bootstrap.pypa.io/get-pip.py
   sudo python get-pip.py
-  sudo pip install ansible
+
+  # Don't install own pip inside travis.
+  if [ "${TRAVIS}" = "true" ]; then
+    sudo pip install ansible
+  else
+    wget https://bootstrap.pypa.io/get-pip.py
+    sudo python get-pip.py
+    sudo pip install ansible
+    rm get-pip.py
+  fi
+
   which ssh-agent || ( sudo apt-get update -y && sudo apt-get install openssh-client -y )
 
   install_configuration
@@ -377,6 +386,7 @@ get_settings()
   local settings_path=$(get_settings_path)
   eval $(_parse_yaml $settings_path "config_")
 }
+
 
 # Returns the git branch name
 # of the current working directory
