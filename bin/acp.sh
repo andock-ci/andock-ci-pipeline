@@ -659,7 +659,7 @@ run_server_install ()
 
   local andock_ci_pw=$(openssl rand -base64 32)
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
-  ansible-playbook --ask-pass --ask-become-pass -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   echo-green "andock-ci server was installed successfully..."
   echo-green "andock-ci password is: $andock_ci_pw"
 }
