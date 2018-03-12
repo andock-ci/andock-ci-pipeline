@@ -469,7 +469,7 @@ check_connect()
   if [ ! -f "${ANDOCK_CI_INVENTORY}/$1" ]; then
     shift
     echo-red "Not connected. Please run acp connect."
-    exit
+    exit 1
   fi
 }
 
