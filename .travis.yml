@@ -27,6 +27,7 @@ before_install:
 install:
   # Install ssh server to emulate real ssh connection
   - sudo apt install openssh-server
+  - sudo apt install sshpass
   # Install andock-ci pipeline
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 
