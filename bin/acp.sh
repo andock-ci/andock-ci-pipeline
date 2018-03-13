@@ -3,9 +3,9 @@
 ANDOCK_CI_VERSION=0.1.0
 ANDOCK_CI_SERVER_VERSION=0.0.1
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.0.8'
+REQUIREMENTS_ANDOCK_CI_BUILD='0.0.7'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.7'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.8'
 REQUIREMENTS_ANDOCK_CI_SERVER='0.0.1'
 REQUIREMENTS_SSH_KEYS='0.3'
 
@@ -189,7 +189,14 @@ _ask ()
 	echo $answer
 }
 
-
+# Ask for password
+# @param $1 Question
+_ask_pw ()
+{
+	# Skip checks if not running interactively (not a tty or not on Windows)
+	read -s -p "$1 : " answer
+	echo $answer
+}
 #------------------------------ SETUP --------------------------------
 # Generatec playbook files
 generate_playbooks()
@@ -441,6 +448,7 @@ run_connect ()
     local host=$1
     shift
   fi
+
   if [ "$1" = "" ]; then
     local root=$(_ask "Please enter andock-ci server root user [Leave empty for root]")
   else
@@ -452,16 +460,45 @@ run_connect ()
     root="root"
   fi
 
+  if [ "$1" = "" ]; then
+    local root_pw=$(_ask_pw "Please enter andock-ci server root password [Leave empty to use ssh keys only]")
+    echo ""
+  else
+    local root_pw=$1
+    shift
+  fi
+
+  if [ "$1" = "" ]; then
+    local andock_ci_pw=$(_ask_pw "Please enter andock-ci password [Leave empty to use ssh keys only]")
+    echo ""
+  else
+    local andock_ci_pw=$1
+    shift
+  fi
+
   mkdir -p $ANDOCK_CI_HOME
+
+  if [ "$root_pw" = "" ]; then
+      local root_pw_string=""
+    else
+      local root_pw_string="ansible_ssh_pass=$root_pw"
+  fi
+
+  if [ "$andock_ci_pw" = "" ]; then
+      local andock_ci_pw_string=""
+    else
+      local andock_ci_pw_string="ansible_ssh_pass=$andock_ci_pw"
+  fi
 
   echo "
 [andock-ci-fin-server]
-$host ansible_connection=ssh ansible_ssh_user=andock-ci
+$host ansible_connection=ssh ansible_user=andock-ci $andock_ci_pw_string
 " > "${ANDOCK_CI_INVENTORY}/fin"
   echo "
 [andock-ci-fin-server]
-$host ansible_connection=ssh ansible_ssh_user=$root
+$host ansible_connection=ssh ansible_user=$root $root_pw_string
 " > "${ANDOCK_CI_INVENTORY}/fin-root"
+  echo-green "Connection configuration was created successfully..."
 }
 
 check_connect()
@@ -644,7 +681,7 @@ run_server_ssh_add ()
   set -e
   check_connect "fin"
   local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $@"
-  ansible-playbook --ask-pass -i "${ANDOCK_CI_INVENTORY}/fin" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
   echo-green "SSH key was added..."
 }
 
@@ -652,14 +689,17 @@ run_server_ssh_add ()
 run_server_install ()
 {
   set -e
-  if [ ! -f "${ANDOCK_CI_INVENTORY}/fin-root" ]; then
-    echo-red "Not connected. Please run acp connect."
-    exit
+  check_connect "fin-root"
+  if [ "$1" = "" ]; then
+    local andock_ci_pw=$(openssl rand -base64 32)
+  else
+    local andock_ci_pw=$1
+    shift
   fi
 
-  local andock_ci_pw=$(openssl rand -base64 32)
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
-  ansible-playbook --ask-pass --ask-become-pass -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   echo-green "andock-ci server was installed successfully..."
   echo-green "andock-ci password is: $andock_ci_pw"
 }
