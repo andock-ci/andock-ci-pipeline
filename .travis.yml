@@ -29,6 +29,7 @@ install:
   - sudo apt install openssh-server
   - sudo apt install sshpass
   # Install andock-ci pipeline
+  - sudo mkdir -p /usr/local/bin &&
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 
 script:
