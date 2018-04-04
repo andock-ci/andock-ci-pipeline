@@ -3,10 +3,10 @@
 ANDOCK_CI_VERSION=0.1.0
 ANDOCK_CI_SERVER_VERSION=0.0.1
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.0.'
+REQUIREMENTS_ANDOCK_CI_BUILD='0.0.7'
 REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.9'
-REQUIREMENTS_ANDOCK_CI_SERVER='0.0.1'
+REQUIREMENTS_ANDOCK_CI_FIN='0.0.10'
+REQUIREMENTS_ANDOCK_CI_SERVER='0.0.3'
 REQUIREMENTS_SSH_KEYS='0.3'
 
 
@@ -287,11 +287,11 @@ install_configuration ()
   export ANSIBLE_RETRY_FILES_ENABLED="False"
   generate_playbooks
   echo-green "Installing roles:"
-  ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD}
-  ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG}
-  ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN}
-  ansible-galaxy install andock-ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER}
-  ansible-galaxy install j0lly.ssh-keys,v${REQUIREMENTS_SSH_KEYS}
+  ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
+  ansible-galaxy install andock-ci.tag,v${REQUIREMENTS_ANDOCK_CI_TAG} --force
+  ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
+  ansible-galaxy install andock-ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
+  ansible-galaxy install j0lly.ssh-keys,v${REQUIREMENTS_SSH_KEYS} --force
   echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
@@ -345,6 +345,8 @@ show_help ()
   printh "server" "Install/Update server" "yellow"
   printh "server:install" "Install andock-ci server"
   printh "server:update" "Update andock-ci server"
+  printh "server:ssh-add" "Add public ssh key to andock-ci server"
+
   printh "server:info" "Show andock-ci server info"
 
   echo
@@ -362,6 +364,8 @@ show_help ()
   printh "fin test"  "Run tests on target project services"
   printh "fin stop" "Stop project services"
   printh "fin rm" "Remove cloned repository and project services"
+  echo
+  printh "fin exec <command>" "Run any fin command on your builded branch"
   echo
   echo
   printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
@@ -575,7 +579,8 @@ run_fin ()
     ;;
   esac
   shift
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
     echo-green "fin ${tag} was finished successfully."
     local domains=$(echo $config_domain | tr " " "\n")
@@ -681,13 +686,16 @@ run_server_ssh_add ()
   set -e
   check_connect "fin"
   local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $@"
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
   echo-green "SSH key was added..."
 }
 
 # Install andock-ci on andock-ci-fin-server.
 run_server_install ()
 {
+  local tag=$1
+  shift
+
   set -e
   check_connect "fin-root"
   if [ "$1" = "" ]; then
@@ -699,7 +707,7 @@ run_server_install ()
 
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
 
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+  ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/fin-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   echo-green "andock-ci server was installed successfully..."
   echo-green "andock-ci password is: $andock_ci_pw"
 }
@@ -711,7 +719,7 @@ case "$1" in
     shift
     install_pipeline "$@"
   ;;
-  _update-configuration)
+  cup)
     shift
     shift
     install_configuration "$@"
@@ -752,11 +760,11 @@ case "$1" in
   ;;
   server:install)
 	shift
-	run_server_install "$@"
+	run_server_install "install $@"
   ;;
   server:update)
 	shift
-	run_server_update "$@"
+	run_server_install "update $@"
   ;;
   server:info)
 	shift
