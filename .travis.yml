@@ -29,7 +29,7 @@ install:
   - sudo apt install openssh-server
   - sudo apt install sshpass
   # Install andock-ci pipeline
-  - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
+  - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/${TRAVIS_BRANCH}/install-pipeline | sh
 
 script:
   # Check the role/playbook's syntax.
