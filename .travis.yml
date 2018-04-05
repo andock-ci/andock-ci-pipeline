@@ -29,7 +29,6 @@ install:
   - sudo apt install openssh-server
   - sudo apt install sshpass
   # Install andock-ci pipeline
-  - sudo mkdir -p /usr/local/bin &&
   - curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
 
 script:
@@ -54,7 +53,7 @@ script:
   - sudo cp /home/travis/.ssh/id_rsa /home/andock-ci/.ssh/id_rsa
   - cd drupal-8-demo
 
-  - acp build
+  #- acp build
 
   # Run all steps with init the environment
   # Overwrite https repositorie. Workaround for permissions problems with travis.
