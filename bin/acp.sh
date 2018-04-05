@@ -1,5 +1,6 @@
 #!/bin/bash
 
+ANSIBLE_VERSION=2.4
 ANDOCK_CI_VERSION=0.1.0
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.0.9'
@@ -266,11 +267,11 @@ install_pipeline()
 
   # Don't install own pip inside travis.
   if [ "${TRAVIS}" = "true" ]; then
-    sudo pip install ansible
+    sudo pip install ansible==$ANSiBLE_VERSION
   else
     wget https://bootstrap.pypa.io/get-pip.py
     sudo python get-pip.py
-    sudo pip install ansible
+    sudo pip install ansible==$ANSiBLE_VERSION
     rm get-pip.py
   fi
 
