@@ -267,11 +267,11 @@ install_pipeline()
 
   # Don't install own pip inside travis.
   if [ "${TRAVIS}" = "true" ]; then
-    sudo pip install ansible=="2.4"
+    sudo pip install ansible=="${ANSIBLE_VERSION}"
   else
     wget https://bootstrap.pypa.io/get-pip.py
     sudo python get-pip.py
-    sudo pip install ansible=="2.4"
+    sudo pip install ansible=="${ANSIBLE_VERSION}"
     rm get-pip.py
   fi
 
