@@ -1,15 +1,12 @@
 #!/usr/bin/env bats
 
-@test "connect" {
-  ssh-keygen -R "192.168.33.10"
-  ../bin/acp.sh connect "192.168.33.10" "root" "vagrant" "andock-ci"
-}
+# Run server.bats before.
 
 @test "fin:init" {
-
-  ssh-keygen -R "192.168.33.10"
+  rm -f -r drupal-8-demo
   ../bin/acp.sh cup
-  ../bin/acp.sh connect "192.168.33.10" "root" "vagrant" "andock-ci"
-  ../bin/acp.sh server:install "andock-ci"
+  git clone https://github.com/andock-ci/drupal-8-demo.git
+  cd drupal-8-demo
+  ../../bin/acp.sh fin init
 }
 
