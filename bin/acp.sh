@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.1.0
+ANDOCK_CI_VERSION=0.1.1
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
 REQUIREMENTS_ANDOCK_CI_FIN='0.1.0'
@@ -366,6 +366,12 @@ show_help ()
   printh "fin rm" "Remove environment."
   echo
   printh "fin-run <command> <path>" "Run any fin command."
+
+  echo
+  printh "Drush:" "" "yellow"
+  printh "drush:connect" "Run this everytime before using drush."
+  printh "drush:generate-alias" "Generate drush alias."
+
   echo
   printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
   echo
@@ -405,16 +411,19 @@ get_default_project_name ()
     echo "${ANDOCK_CI_PROJECT_NAME}"
   fi
 }
-
-# Returns the path to andock-ci.yml
-get_settings_path ()
+check_settings_path ()
 {
   local path="$PWD/.andock-ci/andock-ci.yml"
   if [ ! -f $path ]; then
     echo-error "Settings not found. Run acp generate:config"
     exit 1
   fi
-	echo $path
+}
+# Returns the path to andock-ci.yml
+get_settings_path ()
+{
+  local path="$PWD/.andock-ci/andock-ci.yml"
+  echo $path
 }
 
 # Returns the path to andock-ci.yml
@@ -523,6 +532,7 @@ check_connect()
 # Ansible playbook wrapper for andock-ci.build role.
 run_build ()
 {
+  check_settings_path
   local settings_path=$(get_settings_path)
 
   local branch_name=$(get_current_branch)
@@ -547,7 +557,7 @@ run_fin_run ()
 {
 
   # Check if connection exists
-  get_settings_path
+  check_settings_path
 
   local settings_path=$(get_settings_path)
 
@@ -556,7 +566,6 @@ run_fin_run ()
   local connection=$1
   shift
 
-echo $exec_command
   local exec_command=$1
   shift
 
@@ -577,7 +586,7 @@ run_fin ()
 {
 
   # Check if connection exists
-  get_settings_path
+  check_settings_path
 
   local settings_path=$(get_settings_path)
 
@@ -706,6 +715,43 @@ ssh_add ()
   echo-green "SSH key was added to keystore."
 }
 
+#----------------------------------- DRUSH  -----------------------------------
+run_drush_connect ()
+{
+  set -e
+  check_settings_path
+  get_settings
+  local branch_name=$(get_current_branch)
+  export LC_ANDOCK_CI_ENV="${branch_name}.${config_project_name}"
+  echo-green "Current drush andock-ci alias: ${LC_ANDOCK_CI_ENV}."
+}
+
+run_drush_generate ()
+{
+
+  set -e
+  check_settings_path
+  get_settings
+  local branch_name=$(get_current_branch)
+
+  local domains=$(echo $config_domain | tr " " "\n")
+    for domain in $domains
+    do
+        local url="http://${branch_name}.${domain}"
+        echo-green  "Domain: [$url]"
+            echo "
+\$aliases['${branch_name}'] = array (
+  'root' => '/var/www/drupal',
+  'uri' => '${url}',
+  'remote-host' => '${url}',
+  'remote-user' => 'andock-ci',
+  'ssh-options' => '-o SendEnv=LC_ANDOCK_CI_ENV'
+);
+"
+    done
+
+}
+
 
 #----------------------------------- SERVER -----------------------------------
 
@@ -739,8 +785,13 @@ run_server_install ()
 
   ansible andock-ci-fin-server -i "${ANDOCK_CI_INVENTORY}/${connection}-root"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
   ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
-  echo-green "andock-ci server was installed successfully."
-  echo-green "andock-ci password is: $andock_ci_pw"
+  if [ "$tag" == "install" ]; then
+    echo-green "andock-ci server was installed successfully."
+    echo-green "andock-ci password is: $andock_ci_pw"
+  else
+    echo-green "andock-ci server was updated successfully."
+  fi
+
 }
 
 #----------------------------------- MAIN -------------------------------------
@@ -771,6 +822,7 @@ esac
 # Store the command.
 command=$1
 shift
+
 # Run command.
 case "$command" in
   _install-pipeline)
@@ -801,8 +853,15 @@ case "$command" in
 	run_fin "$connection" $@
   ;;
   fin-run)
-    run_fin_run "$connection" $1 $2
+    run_fin_run "$connection" "$1" "$2"
   ;;
+  drush:connect)
+	run_drush_connect
+  ;;
+  drush:generate-alias)
+	run_drush_generate
+  ;;
+
 
   server:install)
 	run_server_install "$connection" "install" $@
