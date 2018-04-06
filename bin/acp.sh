@@ -325,7 +325,7 @@ self_update()
 
   # overwrite old fin
     sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-    acp _update-configuration
+    acp cup
     exit
   else
     echo-rewrite "Updating andock-ci pipeline... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
