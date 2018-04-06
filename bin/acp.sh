@@ -3,10 +3,9 @@
 ANSIBLE_VERSION="2.4.4"
 ANDOCK_CI_VERSION=0.1.0
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.0.9'
-REQUIREMENTS_ANDOCK_CI_TAG='0.0.2'
-REQUIREMENTS_ANDOCK_CI_FIN='0.0.11'
-REQUIREMENTS_ANDOCK_CI_SERVER='0.0.3'
+REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
+REQUIREMENTS_ANDOCK_CI_FIN='0.1.0'
+REQUIREMENTS_ANDOCK_CI_SERVER='0.1.0'
 REQUIREMENTS_SSH_KEYS='0.3'
 
 DEFAULT_CONNECTION_NAME="andock-ci-server"
@@ -366,7 +365,7 @@ show_help ()
   printh "fin stop" "Stop services."
   printh "fin rm" "Remove environment."
   echo
-  printh "fin run <command>" "Run any fin command."
+  printh "fin-run <command> <path>" "Run any fin command."
   echo
   printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
   echo
@@ -413,10 +412,21 @@ get_settings_path ()
   local path="$PWD/.andock-ci/andock-ci.yml"
   if [ ! -f $path ]; then
     echo-error "Settings not found. Run acp generate:config"
-    exit 1;
+    exit 1
   fi
 	echo $path
 }
+
+# Returns the path to andock-ci.yml
+get_branch_settings_path ()
+{
+  local branch=$(get_current_branch)
+  local path="$PWD/.andock-ci/andock-ci.${branch}.yml"
+  if [ -f $path ]; then
+    echo $path
+  fi
+}
+
 
 get_settings()
 {
@@ -514,6 +524,7 @@ check_connect()
 run_build ()
 {
   local settings_path=$(get_settings_path)
+
   local branch_name=$(get_current_branch)
   echo-green "Building branch <${branch_name}>..."
   local skip_tags=""
@@ -532,11 +543,52 @@ run_build ()
 }
 
 # Ansible playbook wrapper for role andock-ci.fin
+run_fin_run ()
+{
+
+  # Check if connection exists
+  get_settings_path
+
+  local settings_path=$(get_settings_path)
+
+  local branch_name=$(get_current_branch)
+
+  local connection=$1
+  shift
+
+echo $exec_command
+  local exec_command=$1
+  shift
+
+  local exec_path=$1
+  shift
+
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags "exec" -e "@${settings_path}" ${branch_settings_config} -e "exec_command='$exec_command' exec_path='$exec_path' project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  if [[ $? == 0 ]]; then
+    echo-green "fin ${fin_command} was finished successfully."
+  else
+    echo-error $DEFAULT_ERROR_MESSAGE
+    exit 1;
+  fi
+}
+
+# Ansible playbook wrapper for role andock-ci.fin
 run_fin ()
 {
 
+  # Check if connection exists
+  get_settings_path
+
   local settings_path=$(get_settings_path)
+
   get_settings
+
+  local branch_settings_path=$(get_branch_settings_path)
+
+  local branch_settings_config=""
+  if [ "${branch_settings_path}" != "" ]; then
+      local branch_settings_config="-e @${branch_settings_path}"
+  fi
 
   local branch_name=$(get_current_branch)
 
@@ -547,7 +599,7 @@ run_fin ()
   shift
 
   case $tag in
-    init|up|update|test|stop|rm)
+    init|up|update|test|stop|rm|exec)
       echo-green "Start fin ${tag}..."
     ;;
     *)
@@ -557,7 +609,7 @@ run_fin ()
   esac
   shift
 
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" -e "project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
     echo-green "fin ${tag} was finished successfully."
     local domains=$(echo $config_domain | tr " " "\n")
@@ -675,7 +727,6 @@ run_server_install ()
   shift
   local tag=$1
   shift
-    echo $connection
   set -e
   if [ "$1" = "" ]; then
     local andock_ci_pw=$(openssl rand -base64 32)
@@ -686,6 +737,7 @@ run_server_install ()
 
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
 
+  ansible andock-ci-fin-server -i "${ANDOCK_CI_INVENTORY}/${connection}-root"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
   ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   echo-green "andock-ci server was installed successfully."
   echo-green "andock-ci password is: $andock_ci_pw"
@@ -748,6 +800,10 @@ case "$command" in
   fin)
 	run_fin "$connection" $@
   ;;
+  fin-run)
+    run_fin_run "$connection" $1 $2
+  ;;
+
   server:install)
 	run_server_install "$connection" "install" $@
   ;;
@@ -755,7 +811,7 @@ case "$command" in
 	run_server_install "$connection" "update" $@
   ;;
   server:info)
-	run_server_info "$connection $@"
+	run_server_info "$connection" $@
   ;;
   server:ssh-add)
 	run_server_ssh_add "$connection" $@
