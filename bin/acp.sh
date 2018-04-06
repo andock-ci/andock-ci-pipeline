@@ -373,6 +373,7 @@ show_help ()
 
   echo
   printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
+  printh "alias" "Print andock-ci alias."
   echo
   printh "self-update" "${yellow}Update andock-ci${NC}" "yellow"
 }
@@ -727,14 +728,14 @@ ssh_add ()
 }
 
 #----------------------------------- DRUSH  -----------------------------------
-run_drush_connect ()
+run_alias ()
 {
   set -e
   check_settings_path
   get_settings
   local branch_name=$(get_current_branch)
-  export LC_ANDOCK_CI_ENV="${config_project_name}.${branch_name}"
-  echo-green "Current drush andock-ci alias: ${LC_ANDOCK_CI_ENV}."
+  local env="${config_project_name}.${branch_name}"
+  echo "${env}"
 }
 
 run_drush_generate ()
@@ -870,8 +871,8 @@ case "$command" in
   fin-run)
     run_fin_run "$connection" "$1" "$2"
   ;;
-  drush:connect)
-	run_drush_connect
+  alias)
+	run_alias
   ;;
   drush:generate-alias)
 	run_drush_generate
