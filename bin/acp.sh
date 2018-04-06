@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.1.1
+ANDOCK_CI_VERSION=0.1.2
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
 REQUIREMENTS_ANDOCK_CI_FIN='0.1.0'
@@ -325,7 +325,7 @@ self_update()
 
   # overwrite old fin
     sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
-    acp _update-configuration
+    acp cup
     exit
   else
     echo-rewrite "Updating andock-ci pipeline... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
@@ -369,7 +369,6 @@ show_help ()
 
   echo
   printh "Drush:" "" "yellow"
-  printh "drush:connect" "Run this everytime before using drush."
   printh "drush:generate-alias" "Generate drush alias."
 
   echo
@@ -411,6 +410,15 @@ get_default_project_name ()
     echo "${ANDOCK_CI_PROJECT_NAME}"
   fi
 }
+
+find_root_path () {
+  path=$(pwd)
+  while [[ "$path" != "" && ! -e "$path/.andock-ci" ]]; do
+    path=${path%/*}
+  done
+  echo "$path"
+}
+
 check_settings_path ()
 {
   local path="$PWD/.andock-ci/andock-ci.yml"
@@ -419,6 +427,9 @@ check_settings_path ()
     exit 1
   fi
 }
+
+
+
 # Returns the path to andock-ci.yml
 get_settings_path ()
 {
@@ -722,7 +733,7 @@ run_drush_connect ()
   check_settings_path
   get_settings
   local branch_name=$(get_current_branch)
-  export LC_ANDOCK_CI_ENV="${branch_name}.${config_project_name}"
+  export LC_ANDOCK_CI_ENV="${config_project_name}.${branch_name}"
   echo-green "Current drush andock-ci alias: ${LC_ANDOCK_CI_ENV}."
 }
 
@@ -735,7 +746,7 @@ run_drush_generate ()
   local branch_name=$(get_current_branch)
 
   local domains=$(echo $config_domain | tr " " "\n")
-    for domain in $domains
+  for domain in $domains
     do
         local url="http://${branch_name}.${domain}"
         echo-green  "Domain: [$url]"
@@ -766,7 +777,7 @@ run_server_ssh_add ()
   echo-green "SSH key was added."
 }
 
-# Install andock-ci on andock-ci-fin-server.
+# Install andock-ci.
 run_server_install ()
 {
   local connection=$1
@@ -797,7 +808,7 @@ run_server_install ()
 #----------------------------------- MAIN -------------------------------------
 
 
-# Check for an connection alias.
+# Check for connection alias.
 int_connection="$1"
 add="${int_connection:0:1}"
 
@@ -819,11 +830,15 @@ case "$1" in
   ;;
 esac
 
+# ansible playbooks needs to be called from project_root.
+# So cd to root path
+root_path=$(find_root_path)
+cd $root_path
 # Store the command.
 command=$1
 shift
 
-# Run command.
+# Finally. Run command.
 case "$command" in
   _install-pipeline)
     install_pipeline "$@"
