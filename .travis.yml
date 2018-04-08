@@ -27,18 +27,11 @@ install:
 - sudo chmod +x /usr/local/bin/acp
 - acp _install-pipeline
 script:
-- touch /home/travis/.ssh/authorized_keys
-- chmod 600 /home/travis/.ssh/authorized_keys
-- echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC5KlE6U+/dHoDpbygR+Zk/2otZWvpcz34O9zSCHzIBqTLcv3UMhMHCI3YQXpj7EhI5WJop7DHI/vrjpE0Dyaei1OtoNjN32aMEArdQWNvqODKPuC446PbnntTJt/RnxWu3aaj6Ocbx1J79X9CJZk1KdYV4rwsS8XXTjszIBAw50ETBT1SxDST7Rw9QtyGMrt8RCzsR07JT9pjoR1JblXQ76Uwc3gKdaaMjNz1HOoIXNFk8y4iJbr8qgCX38nHGZZlfYO+8gE1ZuBql0qSBRtXh+lKuZJG8Eg4o454bPPRYHx78fKWAGTWMNQxyxSCR8nfqWh5K8eaLojeWsHvFzSCzQBBiFECEigJCkt5xEblLbhYTwpXHfTdrk+KvVJ9AFoveFelXDkHise8VPipkzMnW/26s3k3I7neVK23zgF4BdtsAh8mWWI51VcKeYOKoV76BN4FK5JIHML1HtsotmT8TUTr2loDS33bIf2yox1gnxlZnIwec1obtPaJ8M/meOJlp5QRzNL59M/PKiyiuIeXXmRQXJfl9gmkMiHhQFH5QRUCXA9fmy+dDpgvJvHtdcIAw9VmHVbl+wU9PR56mQoaryBWKlIn3Jes03QaW7gqA5JQ293OBItnqvFLuj3tt9hdaF+KSLcwwTtZ3ATVUAowq26p1xaS13xDlJba8ZTlr1w==
-  info@key-tec.de" >> /home/travis/.ssh/authorized_keys
 - set -e
-- acp connect "andock-ci-server" "localhost" "travis"
+- acp connect "andock-ci-server" "138.68.112.178" "root"
 - acp server:install "andock-ci"
-- cat /home/travis/.andock-ci/inventories/build
-- cat /home/travis/.andock-ci/inventories/andock-ci-server
-- cat /home/travis/.andock-ci/inventories/andock-ci-server-root
+- acp server:ssh-add "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC5KlE6U+/dHoDpbygR+Zk/2otZWvpcz34O9zSCHzIBqTLcv3UMhMHCI3YQXpj7EhI5WJop7DHI/vrjpE0Dyaei1OtoNjN32aMEArdQWNvqODKPuC446PbnntTJt/RnxWu3aaj6Ocbx1J79X9CJZk1KdYV4rwsS8XXTjszIBAw50ETBT1SxDST7Rw9QtyGMrt8RCzsR07JT9pjoR1JblXQ76Uwc3gKdaaMjNz1HOoIXNFk8y4iJbr8qgCX38nHGZZlfYO+8gE1ZuBql0qSBRtXh+lKuZJG8Eg4o454bPPRYHx78fKWAGTWMNQxyxSCR8nfqWh5K8eaLojeWsHvFzSCzQBBiFECEigJCkt5xEblLbhYTwpXHfTdrk+KvVJ9AFoveFelXDkHise8VPipkzMnW/26s3k3I7neVK23zgF4BdtsAh8mWWI51VcKeYOKoV76BN4FK5JIHML1HtsotmT8TUTr2loDS33bIf2yox1gnxlZnIwec1obtPaJ8M/meOJlp5QRzNL59M/PKiyiuIeXXmRQXJfl9gmkMiHhQFH5QRUCXA9fmy+dDpgvJvHtdcIAw9VmHVbl+wU9PR56mQoaryBWKlIn3Jes03QaW7gqA5JQ293OBItnqvFLuj3tt9hdaF+KSLcwwTtZ3ATVUAowq26p1xaS13xDlJba8ZTlr1w=="
 - git clone git@github.com:andock-ci/drupal-8-demo.git
-- sudo cp /home/travis/.ssh/id_rsa /home/andock-ci/.ssh/id_rsa
 - cd drupal-8-demo
 - acp fin init -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
 - acp fin update -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
