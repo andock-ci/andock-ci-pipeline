@@ -13,7 +13,7 @@ git config --global user.email "christian.wiedemann@key-tec.de"
 git config --global user.name "KEY-TEC (via TravisCI)"
 
 curl -sL https://github.com/digitalocean/doctl/releases/download/v1.7.2/doctl-1.7.2-linux-amd64.tar.gz | tar -xzv
-sudo mv ~/doctl /usr/local/bin
+sudo mv doctl /usr/local/bin
 doctl auth init -t $do_token
 
 doctl compute droplet-action restore 88798812 --image-id=33288941 --wait
