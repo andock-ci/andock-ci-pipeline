@@ -1,68 +1,47 @@
----
 sudo: required
 dist: trusty
-
 language: php
-php: "7.0"
-
+php: '7.0'
 services:
-  - docker
-
+- docker
 env:
-  matrix:
-  - ANSIBLE_VERSION=latest
   global:
   - secure: QCN/3wjqP+Dr0o3dU5TE+gmJgpziglMfqYnxuWnwO4mercNhRAtNatH11coOt9hA+y7tcSCnR2+CPx0PfoIy3aITW1OY7WzD7DfgfAS7WgeRPdGNWmpKvy5wn5OjDZoAaIA5xaTzDwUATqNiYJhzhM5eFzpemPOOimWpzfGNxVuj2uWeb+ILf4JRC+L3xiqAtBH7NDvyJgsJ55kFEnbAB8vBERBhZu736Y36Cr6l02IF6F/1ljS1vb56t4iFF/WekffBqXptjnn9bKYK+QYPAfPRnMgKdiJ9MHB23FenlTv2v4fOMbNyCDpbKvsbqMeNbvlCrWKnGGARGP1ch89RqU0jTZFkloSKQvcVnWpy1el2S8hE8wKnxGqwD+i5AGZyxenbv8d+p27ienQtNQk/ukZdr70GlscEtLwUF9d/uh8Hj0gph4NPEjuS6c5x/JDYMEEwiTf2B4k/2tdG2W0prBgkY3LrTAuTUL2109mFpmOs/RVsMglLj9SsSbFBYMmOLqG+oaiJJNq6tD0/FcZhlpblrxKyrQQ3NmUdnVbzRjp8q1p9yn7uoc8QJrRvdZStnZwQ5V6EHVXgvbzg8oS6C/EQ3DUFXF/5wjhysKl6wKk1mGqyYKw5cB8LemSX0zKVN8RPm7IOgh5kpcAzSc/ISfRp8IfvW7nv4eGBf/43Upc=
-  - ENCRYPTION_LABEL: "1cc5062d8c78"
-  - COMMIT_AUTHOR_EMAIL: "christian.wiedemann@key-tec.de"
+  - ENCRYPTION_LABEL: 1cc5062d8c78
+  - COMMIT_AUTHOR_EMAIL: christian.wiedemann@key-tec.de
+  do:
+  - secure: "b7CC4KcttP3lJMQGo+HDcvQYcvrtxeCrSn4gIhT7j+7U2pKjyXdISP6+fHrii8NVgr/V/WUbq4PB2OakRV2ro5NWS34TxwO/C6OvD68UF+2zCDf/zBUdYDDpRTBxSik/uQP4G2LHk+ChrD2LbDuLpGwo36mYl9cun2x7Wmd6kDyS/JTNxheP51X3D/fCcPVVSdMo7uxA7AF6hLe0nI7eI7kjzlew9RONhBU3dm+hXcwwlZ/ztRiIeHBIGIonf0HphUQyoK+Dq0vlADmIeEKSTNciU9iS6DzcKxcSKRgEoG1R7biiC60MAD+pmdL3cqrMMPP0V0PkDRIjoMwJlwrsekUmF26qq5gREreQqjBE+ZHAx5QdGNZai0DhelzzZfOB28GTRzfyzlxOHdc0DYN2pqDnXpodKEQGxq8/Yqmhk8Z8tq86svCmskGDHmqxKYITjO0xrr0vtmcOGkEJN4mrtL+YIjIgA3AGoEynpMdqozDcF4AQAtikPW+GFQcERsNA7qcEK+fGUIIHJPWekdnSBaMYdSJC3KilG7i/syw4EZ+Z4YgOFLJmd0WTdNMhhqYgBrIjSZsE08J13nx7gX82QhYDItTzuSaceH3KbZwiQpxH4kcHNTgL/u0QvBCuLfY/4PFxRrQWvY2QeF2e1aM+2bg5hujzCM6kObsyRRv3RKA="
 
 branches:
   only:
-    - master
-    - develop
-
+  - master
+  - develop
 before_install:
-  - ./before_install.sh
-
+- "./before_install.sh"
 install:
-  # Install ssh server to emulate real ssh connection
-  - sudo apt install openssh-server
-  - sudo apt install sshpass
-  # Install andock-ci pipeline
-  - sudo mkdir -p /usr/local/bin
-  - sudo curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/${TRAVIS_BRANCH}/bin/acp.sh -o /usr/local/bin/acp
-  - sudo chmod +x /usr/local/bin/acp
-  - acp _install-pipeline
-
-
+- sudo apt install openssh-server
+- sudo apt install sshpass
+- sudo mkdir -p /usr/local/bin
+- sudo curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/${TRAVIS_BRANCH}/bin/acp.sh
+  -o /usr/local/bin/acp
+- sudo chmod +x /usr/local/bin/acp
+- acp _install-pipeline
 script:
-  # Check the role/playbook's syntax.
-  - touch /home/travis/.ssh/authorized_keys
-  - chmod 600 /home/travis/.ssh/authorized_keys
-  - echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC5KlE6U+/dHoDpbygR+Zk/2otZWvpcz34O9zSCHzIBqTLcv3UMhMHCI3YQXpj7EhI5WJop7DHI/vrjpE0Dyaei1OtoNjN32aMEArdQWNvqODKPuC446PbnntTJt/RnxWu3aaj6Ocbx1J79X9CJZk1KdYV4rwsS8XXTjszIBAw50ETBT1SxDST7Rw9QtyGMrt8RCzsR07JT9pjoR1JblXQ76Uwc3gKdaaMjNz1HOoIXNFk8y4iJbr8qgCX38nHGZZlfYO+8gE1ZuBql0qSBRtXh+lKuZJG8Eg4o454bPPRYHx78fKWAGTWMNQxyxSCR8nfqWh5K8eaLojeWsHvFzSCzQBBiFECEigJCkt5xEblLbhYTwpXHfTdrk+KvVJ9AFoveFelXDkHise8VPipkzMnW/26s3k3I7neVK23zgF4BdtsAh8mWWI51VcKeYOKoV76BN4FK5JIHML1HtsotmT8TUTr2loDS33bIf2yox1gnxlZnIwec1obtPaJ8M/meOJlp5QRzNL59M/PKiyiuIeXXmRQXJfl9gmkMiHhQFH5QRUCXA9fmy+dDpgvJvHtdcIAw9VmHVbl+wU9PR56mQoaryBWKlIn3Jes03QaW7gqA5JQ293OBItnqvFLuj3tt9hdaF+KSLcwwTtZ3ATVUAowq26p1xaS13xDlJba8ZTlr1w== info@key-tec.de" >> /home/travis/.ssh/authorized_keys
-  - set -e
-  # Connect
-  - acp connect "andock-ci-server" "localhost" "travis"
-  # Install server
-  - acp server:install "andock-ci"
-
-  # Show inventory files
-  - cat /home/travis/.andock-ci/inventories/build
-  - cat /home/travis/.andock-ci/inventories/andock-ci-server
-  - cat /home/travis/.andock-ci/inventories/andock-ci-server-root
-
-  # clone source git repository
-  - git clone git@github.com:andock-ci/drupal-8-demo.git
-  # Copy private ssh keys to checkout target git repository
-  - sudo cp /home/travis/.ssh/id_rsa /home/andock-ci/.ssh/id_rsa
-  - cd drupal-8-demo
-
-  #- acp build
-
-  # Run all steps with init the environment
-  # Overwrite https repositorie. Workaround for permissions problems with travis.
-  - acp fin init -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
-  - acp fin update -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
-  - acp fin test -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
-  - acp fin stop -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
-  - acp fin rm -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+- touch /home/travis/.ssh/authorized_keys
+- chmod 600 /home/travis/.ssh/authorized_keys
+- echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC5KlE6U+/dHoDpbygR+Zk/2otZWvpcz34O9zSCHzIBqTLcv3UMhMHCI3YQXpj7EhI5WJop7DHI/vrjpE0Dyaei1OtoNjN32aMEArdQWNvqODKPuC446PbnntTJt/RnxWu3aaj6Ocbx1J79X9CJZk1KdYV4rwsS8XXTjszIBAw50ETBT1SxDST7Rw9QtyGMrt8RCzsR07JT9pjoR1JblXQ76Uwc3gKdaaMjNz1HOoIXNFk8y4iJbr8qgCX38nHGZZlfYO+8gE1ZuBql0qSBRtXh+lKuZJG8Eg4o454bPPRYHx78fKWAGTWMNQxyxSCR8nfqWh5K8eaLojeWsHvFzSCzQBBiFECEigJCkt5xEblLbhYTwpXHfTdrk+KvVJ9AFoveFelXDkHise8VPipkzMnW/26s3k3I7neVK23zgF4BdtsAh8mWWI51VcKeYOKoV76BN4FK5JIHML1HtsotmT8TUTr2loDS33bIf2yox1gnxlZnIwec1obtPaJ8M/meOJlp5QRzNL59M/PKiyiuIeXXmRQXJfl9gmkMiHhQFH5QRUCXA9fmy+dDpgvJvHtdcIAw9VmHVbl+wU9PR56mQoaryBWKlIn3Jes03QaW7gqA5JQ293OBItnqvFLuj3tt9hdaF+KSLcwwTtZ3ATVUAowq26p1xaS13xDlJba8ZTlr1w==
+  info@key-tec.de" >> /home/travis/.ssh/authorized_keys
+- set -e
+- acp connect "andock-ci-server" "localhost" "travis"
+- acp server:install "andock-ci"
+- cat /home/travis/.andock-ci/inventories/build
+- cat /home/travis/.andock-ci/inventories/andock-ci-server
+- cat /home/travis/.andock-ci/inventories/andock-ci-server-root
+- git clone git@github.com:andock-ci/drupal-8-demo.git
+- sudo cp /home/travis/.ssh/id_rsa /home/andock-ci/.ssh/id_rsa
+- cd drupal-8-demo
+- acp fin init -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+- acp fin update -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+- acp fin test -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+- acp fin stop -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+- acp fin rm -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
