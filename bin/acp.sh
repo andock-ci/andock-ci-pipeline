@@ -630,7 +630,7 @@ run_fin ()
   esac
   shift
 
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
     echo-green "fin ${tag} was finished successfully."
     local domains=$(echo $config_domain | tr " " "\n")
@@ -843,6 +843,9 @@ shift
 case "$command" in
   _install-pipeline)
     install_pipeline "$@"
+  ;;
+  _update-pipeline)
+    install_configuration "$@"
   ;;
   cup)
     install_configuration "$@"
