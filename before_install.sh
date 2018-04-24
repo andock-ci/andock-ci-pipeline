@@ -19,7 +19,7 @@ doctl auth init -t $do_token
 
 # Test against an empty image.
 # Restore from snapshot.
-doctl compute droplet-action restore 88798812 --image-id=33288941 --wait
+#doctl compute droplet-action restore 88798812 --image-id=33288941 --wait
 
 # Sleep while image is rebooting.
-sleep 60
+#sleep 60
