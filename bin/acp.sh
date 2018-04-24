@@ -628,7 +628,6 @@ run_fin ()
       exit 1
     ;;
   esac
-  shift
 
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
@@ -869,7 +868,7 @@ case "$command" in
 	run_build "$@"
   ;;
   fin)
-	run_fin "$connection" $@
+	run_fin "$connection" "$@"
   ;;
   fin-run)
     run_fin_run "$connection" "$1" "$2"
