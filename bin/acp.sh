@@ -4,7 +4,7 @@ ANSIBLE_VERSION="2.4.4"
 ANDOCK_CI_VERSION=0.1.3
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
-REQUIREMENTS_ANDOCK_CI_FIN='0.1.0'
+REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
 REQUIREMENTS_ANDOCK_CI_SERVER='0.1.0'
 REQUIREMENTS_SSH_KEYS='0.3'
 
@@ -628,7 +628,6 @@ run_fin ()
       exit 1
     ;;
   esac
-  shift
 
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
@@ -869,7 +868,7 @@ case "$command" in
 	run_build "$@"
   ;;
   fin)
-	run_fin "$connection" $@
+	run_fin "$connection" "$@"
   ;;
   fin-run)
     run_fin_run "$connection" "$1" "$2"

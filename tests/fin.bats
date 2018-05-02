@@ -7,6 +7,6 @@
   ../bin/acp.sh cup
   git clone https://github.com/andock-ci/drupal-8-demo.git
   cd drupal-8-demo
-  ../../bin/acp.sh fin init
+  ../../bin/acp.sh fin init -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
 }
 
