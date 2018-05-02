@@ -1,10 +1,10 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.1.3
+ANDOCK_CI_VERSION=0.2.0
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
-REQUIREMENTS_ANDOCK_CI_FIN='0.1.0'
+REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
 REQUIREMENTS_ANDOCK_CI_SERVER='0.1.0'
 REQUIREMENTS_SSH_KEYS='0.3'
 
@@ -628,9 +628,8 @@ run_fin ()
       exit 1
     ;;
   esac
-  shift
 
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
     echo-green "fin ${tag} was finished successfully."
     local domains=$(echo $config_domain | tr " " "\n")
@@ -825,7 +824,7 @@ fi
 # Than we check if the command needs an connection.
 # And if yes we check if the connection exists.
 case "$1" in
-  server:install|server:update|server:info|fin|ssh-add)
+  server:install|server:update|server:info|server:ssh-add|fin)
   check_connect $connection
   echo-green "Use connection: $connection"
   ;;
@@ -844,6 +843,9 @@ case "$command" in
   _install-pipeline)
     install_pipeline "$@"
   ;;
+  _update-pipeline)
+    install_configuration "$@"
+  ;;
   cup)
     install_configuration "$@"
   ;;
@@ -851,7 +853,7 @@ case "$command" in
     self_update "$@"
   ;;
   ssh-add)
-    ssh_add $connection "$@"
+    ssh_add "$@"
   ;;
   generate-playbooks)
     generate_playbooks
@@ -866,7 +868,7 @@ case "$command" in
 	run_build "$@"
   ;;
   fin)
-	run_fin "$connection" $@
+	run_fin "$connection" "$@"
   ;;
   fin-run)
     run_fin_run "$connection" "$1" "$2"

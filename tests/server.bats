@@ -1,8 +1,4 @@
 #!/usr/bin/env bats
-setup() {
-  vagrant up
-}
-
 
 @test "connect" {
   ssh-keygen -R "dev.andock-ci.io"

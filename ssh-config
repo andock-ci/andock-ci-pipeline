@@ -5,3 +5,11 @@ StrictHostKeyChecking 	no
 PasswordAuthentication	no
 CheckHostIP			      	no
 BatchMode			        	yes
+
+Host 138.68.112.178
+User				          	root
+IdentityFile		      	~/.ssh/id_rsa
+StrictHostKeyChecking 	no
+PasswordAuthentication	no
+CheckHostIP			      	no
+BatchMode			        	yes
