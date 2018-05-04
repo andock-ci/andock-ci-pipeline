@@ -8,13 +8,14 @@ REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
 REQUIREMENTS_ANDOCK_CI_SERVER='0.1.0'
 REQUIREMENTS_SSH_KEYS='0.3'
 
-DEFAULT_CONNECTION_NAME="andock-ci-server"
+DEFAULT_CONNECTION_NAME="default"
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
 
 ANDOCK_CI_HOME="$HOME/.andock-ci"
-ANDOCK_CI_INVENTORY="$ANDOCK_CI_HOME/inventories"
+ANDOCK_CI_INVENTORY="./.andock-ci/connections"
+ANDOCK_CI_INVENTORY_GLOBAL="$ANDOCK_CI_HOME/connections"
 ANDOCK_CI_PLAYBOOK="$ANDOCK_CI_HOME/playbooks"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
@@ -197,8 +198,9 @@ _ask_pw ()
 	read -s -p "$1 : " answer
 	echo $answer
 }
+
 #------------------------------ SETUP --------------------------------
-# Generatec playbook files
+# Generate playbook files
 generate_playbooks()
 {
   mkdir -p $ANDOCK_CI_PLAYBOOK
@@ -229,7 +231,7 @@ generate_playbooks()
 
 
   echo "---
-- hosts: andock-ci-fin-server
+- hosts: andock-ci-fin-server-root
   roles:
     - role: j0lly.ssh-keys
       ssh_keys_clean: False
@@ -239,7 +241,7 @@ generate_playbooks()
 " > "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
 
   echo "---
-- hosts: andock-ci-fin-server
+- hosts: andock-ci-fin-server-root
   roles:
     - { role: andock-ci.server }
 " > "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
@@ -282,7 +284,7 @@ install_pipeline()
 }
 install_configuration ()
 {
-  mkdir -p $ANDOCK_CI_INVENTORY
+  mkdir -p $ANDOCK_CI_INVENTORY_GLOBAL
 
   export ANSIBLE_RETRY_FILES_ENABLED="False"
   generate_playbooks
@@ -294,7 +296,7 @@ install_configuration ()
   echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
-" > "${ANDOCK_CI_INVENTORY}/build"
+" > "${ANDOCK_CI_INVENTORY_GLOBAL}/build"
 
 }
 # Based on docksal update script
@@ -478,7 +480,7 @@ get_current_branch ()
 run_connect ()
 {
   if [ "$1" = "" ]; then
-    local connection_name=$(_ask "Please enter connection name. [andock-ci-server]")
+    local connection_name=$(_ask "Please enter connection name [$DEFAULT_CONNECTION_NAME]")
   else
     local connection_name=$1
     shift
@@ -502,34 +504,19 @@ run_connect ()
     root="root"
   fi
 
-
-
-  mkdir -p $ANDOCK_CI_HOME
-
   if [ "$connection_name" = "" ]; then
-      local connection_name="andock-ci-server"
+      local connection_name=$DEFAULT_CONNECTION_NAME
   fi
 
-  if [ "$root_pw" = "" ]; then
-      local root_pw_string=""
-    else
-      local root_pw_string="ansible_ssh_pass=$root_pw"
-  fi
-
-  if [ "$andock_ci_pw" = "" ]; then
-      local andock_ci_pw_string=""
-    else
-      local andock_ci_pw_string="ansible_ssh_pass=$andock_ci_pw"
-  fi
+  mkdir -p ".andock-ci/connections"
 
   echo "
 [andock-ci-fin-server]
 $host ansible_connection=ssh ansible_user=andock-ci $andock_ci_pw_string
+
+[andock-ci-fin-server-root]
+$host ansible_connection=ssh ansible_user=$root
 " > "${ANDOCK_CI_INVENTORY}/${connection_name}"
-  echo "
-[andock-ci-fin-server]
-$host ansible_connection=ssh ansible_user=$root $root_pw_string
-" > "${ANDOCK_CI_INVENTORY}/${connection_name}-root"
   echo-green "Connection configuration was created successfully."
 }
 
@@ -773,7 +760,7 @@ run_server_ssh_add ()
   local connection=$1
   shift
   local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $@"
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}-root" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
   echo-green "SSH key was added."
 }
 
@@ -793,9 +780,9 @@ run_server_install ()
   fi
 
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
-
-  ansible andock-ci-fin-server -i "${ANDOCK_CI_INVENTORY}/${connection}-root"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
-  ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+cat "${ANDOCK_CI_INVENTORY}/${connection}"
+  ansible andock-ci-fin-server-root -i "${ANDOCK_CI_INVENTORY}/${connection}"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
+  ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   if [ "$tag" == "install" ]; then
     echo-green "andock-ci server was installed successfully."
     echo-green "andock-ci password is: $andock_ci_pw"
@@ -817,7 +804,7 @@ if [ "$add" = "@" ]; then
     connection="${int_connection:1}"
     shift
 else
-    # No alias found. Use the "andock-ci-server"
+    # No alias found. Use the "default"
     connection=${DEFAULT_CONNECTION_NAME}
 fi
 
@@ -834,6 +821,7 @@ esac
 # So cd to root path
 root_path=$(find_root_path)
 cd $root_path
+echo $root_path
 # Store the command.
 command=$1
 shift
