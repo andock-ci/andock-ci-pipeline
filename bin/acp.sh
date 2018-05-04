@@ -211,7 +211,7 @@ generate_playbooks()
 " > "${ANDOCK_CI_PLAYBOOK}/build.yml"
 
   echo "---
-- hosts: andock-ci-fin-server
+- hosts: andock-ci-docksal-server
   gather_facts: true
   roles:
     - { role: andock-ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
@@ -231,7 +231,7 @@ generate_playbooks()
 
 
   echo "---
-- hosts: andock-ci-fin-server-root
+- hosts: andock-ci-docksal-server
   roles:
     - role: j0lly.ssh-keys
       ssh_keys_clean: False
@@ -241,7 +241,7 @@ generate_playbooks()
 " > "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
 
   echo "---
-- hosts: andock-ci-fin-server-root
+- hosts: andock-ci-docksal-server
   roles:
     - { role: andock-ci.server }
 " > "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
@@ -346,11 +346,9 @@ show_help ()
 
   echo
   printh "Server management:" "" "yellow"
-  printh "server:install" "Install andock-ci server."
-  printh "server:update" "Update andock-ci server."
-  printh "server:ssh-add" "Add public ssh key to andock-ci server."
-
-  printh "server:info" "Show andock-ci server info"
+  printh "server:install [root_user, default=root] [andock_ci_pass, default=keygen]>" "Install andock-ci server."
+  printh "server:update [root_user, default=root]" "Update andock-ci server."
+  printh "server:ssh-add [root_user, default=root]" "Add public ssh key to andock-ci server."
 
   echo
   printh "Project configuration:" "" "yellow"
@@ -493,17 +491,6 @@ run_connect ()
     shift
   fi
 
-  if [ "$1" = "" ]; then
-    local root=$(_ask "Please enter andock-ci server root user [root]")
-  else
-    local root=$1
-    shift
-  fi
-
-  if [ "$root" = "" ]; then
-    root="root"
-  fi
-
   if [ "$connection_name" = "" ]; then
       local connection_name=$DEFAULT_CONNECTION_NAME
   fi
@@ -511,12 +498,10 @@ run_connect ()
   mkdir -p ".andock-ci/connections"
 
   echo "
-[andock-ci-fin-server]
-$host ansible_connection=ssh ansible_user=andock-ci $andock_ci_pw_string
-
-[andock-ci-fin-server-root]
-$host ansible_connection=ssh ansible_user=$root
+[andock-ci-docksal-server]
+$host ansible_connection=ssh ansible_user=andock-ci
 " > "${ANDOCK_CI_INVENTORY}/${connection_name}"
+
   echo-green "Connection configuration was created successfully."
 }
 
@@ -759,7 +744,18 @@ run_server_ssh_add ()
   set -e
   local connection=$1
   shift
-  local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $@"
+
+  local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $1"
+  shift
+
+  if [ "$1" = "" ]; then
+    local root_user="root"
+  else
+    local root_user=$1
+    shift
+  fi
+
+
   ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
   echo-green "SSH key was added."
 }
@@ -772,6 +768,7 @@ run_server_install ()
   local tag=$1
   shift
   set -e
+
   if [ "$1" = "" ]; then
     local andock_ci_pw=$(openssl rand -base64 32)
   else
@@ -779,10 +776,17 @@ run_server_install ()
     shift
   fi
 
+  if [ "$1" = "" ]; then
+    local root_user="root"
+  else
+    local root_user=$1
+    shift
+  fi
+
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
-cat "${ANDOCK_CI_INVENTORY}/${connection}"
-  ansible andock-ci-fin-server-root -i "${ANDOCK_CI_INVENTORY}/${connection}"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
-  ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+
+  ansible andock-ci-docksal-server -e "ansible_ssh_user=$root_user" -i "${ANDOCK_CI_INVENTORY}/${connection}"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
+  ansible-playbook -e "ansible_ssh_user=$root_user" --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   if [ "$tag" == "install" ]; then
     echo-green "andock-ci server was installed successfully."
     echo-green "andock-ci password is: $andock_ci_pw"
@@ -821,7 +825,7 @@ esac
 # So cd to root path
 root_path=$(find_root_path)
 cd $root_path
-echo $root_path
+
 # Store the command.
 command=$1
 shift
@@ -879,7 +883,7 @@ case "$command" in
 	run_server_info "$connection" $@
   ;;
   server:ssh-add)
-	run_server_ssh_add "$connection" $@
+	run_server_ssh_add "$connection" "$1" "$2"
   ;;
   help|"")
     show_help

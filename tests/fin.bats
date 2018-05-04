@@ -2,11 +2,22 @@
 
 # Run server.bats before.
 
+setup() {
+    cd drupal-8-demo
+}
+
 @test "fin:init" {
-  rm -f -r drupal-8-demo
-  ../bin/acp.sh cup
-  git clone https://github.com/andock-ci/drupal-8-demo.git
-  cd drupal-8-demo
   ../../bin/acp.sh fin init -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
 }
 
+@test "fin:update" {
+  ../../bin/acp.sh fin update -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+}
+
+@test "fin:test" {
+  ../../bin/acp.sh fin test -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+}
+
+@test "fin:rm" {
+  ../../bin/acp.sh fin rm -e "git_target_repository_path=https://github.com/andock-ci/drupal-8-demo-build.git"
+}
