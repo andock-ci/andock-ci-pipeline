@@ -8,13 +8,14 @@ REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
 REQUIREMENTS_ANDOCK_CI_SERVER='0.1.0'
 REQUIREMENTS_SSH_KEYS='0.3'
 
-DEFAULT_CONNECTION_NAME="andock-ci-server"
+DEFAULT_CONNECTION_NAME="default"
 
 ANDOCK_CI_PATH="/usr/local/bin/acp"
 ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
 
 ANDOCK_CI_HOME="$HOME/.andock-ci"
-ANDOCK_CI_INVENTORY="$ANDOCK_CI_HOME/inventories"
+ANDOCK_CI_INVENTORY="./.andock-ci/connections"
+ANDOCK_CI_INVENTORY_GLOBAL="$ANDOCK_CI_HOME/connections"
 ANDOCK_CI_PLAYBOOK="$ANDOCK_CI_HOME/playbooks"
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
@@ -197,8 +198,9 @@ _ask_pw ()
 	read -s -p "$1 : " answer
 	echo $answer
 }
+
 #------------------------------ SETUP --------------------------------
-# Generatec playbook files
+# Generate playbook files
 generate_playbooks()
 {
   mkdir -p $ANDOCK_CI_PLAYBOOK
@@ -209,7 +211,7 @@ generate_playbooks()
 " > "${ANDOCK_CI_PLAYBOOK}/build.yml"
 
   echo "---
-- hosts: andock-ci-fin-server
+- hosts: andock-ci-docksal-server
   gather_facts: true
   roles:
     - { role: andock-ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
@@ -229,7 +231,7 @@ generate_playbooks()
 
 
   echo "---
-- hosts: andock-ci-fin-server
+- hosts: andock-ci-docksal-server
   roles:
     - role: j0lly.ssh-keys
       ssh_keys_clean: False
@@ -239,7 +241,7 @@ generate_playbooks()
 " > "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
 
   echo "---
-- hosts: andock-ci-fin-server
+- hosts: andock-ci-docksal-server
   roles:
     - { role: andock-ci.server }
 " > "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
@@ -282,7 +284,7 @@ install_pipeline()
 }
 install_configuration ()
 {
-  mkdir -p $ANDOCK_CI_INVENTORY
+  mkdir -p $ANDOCK_CI_INVENTORY_GLOBAL
 
   export ANSIBLE_RETRY_FILES_ENABLED="False"
   generate_playbooks
@@ -294,7 +296,7 @@ install_configuration ()
   echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
-" > "${ANDOCK_CI_INVENTORY}/build"
+" > "${ANDOCK_CI_INVENTORY_GLOBAL}/build"
 
 }
 # Based on docksal update script
@@ -344,11 +346,9 @@ show_help ()
 
   echo
   printh "Server management:" "" "yellow"
-  printh "server:install" "Install andock-ci server."
-  printh "server:update" "Update andock-ci server."
-  printh "server:ssh-add" "Add public ssh key to andock-ci server."
-
-  printh "server:info" "Show andock-ci server info"
+  printh "server:install [root_user, default=root] [andock_ci_pass, default=keygen]>" "Install andock-ci server."
+  printh "server:update [root_user, default=root]" "Update andock-ci server."
+  printh "server:ssh-add [root_user, default=root]" "Add public ssh key to andock-ci server."
 
   echo
   printh "Project configuration:" "" "yellow"
@@ -478,7 +478,7 @@ get_current_branch ()
 run_connect ()
 {
   if [ "$1" = "" ]; then
-    local connection_name=$(_ask "Please enter connection name. [andock-ci-server]")
+    local connection_name=$(_ask "Please enter connection name [$DEFAULT_CONNECTION_NAME]")
   else
     local connection_name=$1
     shift
@@ -491,45 +491,17 @@ run_connect ()
     shift
   fi
 
-  if [ "$1" = "" ]; then
-    local root=$(_ask "Please enter andock-ci server root user [root]")
-  else
-    local root=$1
-    shift
-  fi
-
-  if [ "$root" = "" ]; then
-    root="root"
-  fi
-
-
-
-  mkdir -p $ANDOCK_CI_HOME
-
   if [ "$connection_name" = "" ]; then
-      local connection_name="andock-ci-server"
+      local connection_name=$DEFAULT_CONNECTION_NAME
   fi
 
-  if [ "$root_pw" = "" ]; then
-      local root_pw_string=""
-    else
-      local root_pw_string="ansible_ssh_pass=$root_pw"
-  fi
-
-  if [ "$andock_ci_pw" = "" ]; then
-      local andock_ci_pw_string=""
-    else
-      local andock_ci_pw_string="ansible_ssh_pass=$andock_ci_pw"
-  fi
+  mkdir -p ".andock-ci/connections"
 
   echo "
-[andock-ci-fin-server]
-$host ansible_connection=ssh ansible_user=andock-ci $andock_ci_pw_string
+[andock-ci-docksal-server]
+$host ansible_connection=ssh ansible_user=andock-ci
 " > "${ANDOCK_CI_INVENTORY}/${connection_name}"
-  echo "
-[andock-ci-fin-server]
-$host ansible_connection=ssh ansible_user=$root $root_pw_string
-" > "${ANDOCK_CI_INVENTORY}/${connection_name}-root"
+
   echo-green "Connection configuration was created successfully."
 }
 
@@ -772,8 +744,19 @@ run_server_ssh_add ()
   set -e
   local connection=$1
   shift
-  local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $@"
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}-root" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
+
+  local ssh_key="command=\"acs _bridge \$SSH_ORIGINAL_COMMAND\" $1"
+  shift
+
+  if [ "$1" = "" ]; then
+    local root_user="root"
+  else
+    local root_user=$1
+    shift
+  fi
+
+
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
   echo-green "SSH key was added."
 }
 
@@ -785,6 +768,7 @@ run_server_install ()
   local tag=$1
   shift
   set -e
+
   if [ "$1" = "" ]; then
     local andock_ci_pw=$(openssl rand -base64 32)
   else
@@ -792,10 +776,17 @@ run_server_install ()
     shift
   fi
 
+  if [ "$1" = "" ]; then
+    local root_user="root"
+  else
+    local root_user=$1
+    shift
+  fi
+
   local andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
 
-  ansible andock-ci-fin-server -i "${ANDOCK_CI_INVENTORY}/${connection}-root"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
-  ansible-playbook --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}-root" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+  ansible andock-ci-docksal-server -e "ansible_ssh_user=$root_user" -i "${ANDOCK_CI_INVENTORY}/${connection}"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
+  ansible-playbook -e "ansible_ssh_user=$root_user" --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
   if [ "$tag" == "install" ]; then
     echo-green "andock-ci server was installed successfully."
     echo-green "andock-ci password is: $andock_ci_pw"
@@ -817,7 +808,7 @@ if [ "$add" = "@" ]; then
     connection="${int_connection:1}"
     shift
 else
-    # No alias found. Use the "andock-ci-server"
+    # No alias found. Use the "default"
     connection=${DEFAULT_CONNECTION_NAME}
 fi
 
@@ -834,6 +825,7 @@ esac
 # So cd to root path
 root_path=$(find_root_path)
 cd $root_path
+
 # Store the command.
 command=$1
 shift
@@ -891,7 +883,7 @@ case "$command" in
 	run_server_info "$connection" $@
   ;;
   server:ssh-add)
-	run_server_ssh_add "$connection" $@
+	run_server_ssh_add "$connection" "$1" "$2"
   ;;
   help|"")
     show_help
