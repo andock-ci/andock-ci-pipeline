@@ -2,7 +2,7 @@
 
 @test "connect" {
   ssh-keygen -R "dev.andock-ci.io"
-  ../bin/acp.sh connect "andock-ci-server" "dev.andock-ci.io" "root"
+  ../bin/acp.sh connect "default" "dev.andock-ci.io" "root"
 }
 
 @test "server:ssh-add" {
@@ -10,8 +10,6 @@
 }
 
 @test "server:install" {
-  ssh-keygen -R "dev.andock-ci.io"
-  ../bin/acp.sh cup
   ../bin/acp.sh server:install "andock-ci"
 }
 
