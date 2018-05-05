@@ -54,22 +54,6 @@ _parse_yaml() {
    }'
 }
 
-# Check whether we have a working c.
-# Otherwise we are running in a non-tty environment ( e.g. Babun on Windows).
-# We assume the environment is interactive if there is a tty.
-# All other direct checks don't work well in and every environment and scripts.
-# @author Leonid Makarov
-is_tty ()
-{
-
-	[[ "$(/usr/bin/tty || true)" != "not a tty" ]]
-
-	# TODO: rewrite this check using [ -t ] test
-	# http://stackoverflow.com/questions/911168/how-to-detect-if-my-shell-script-is-running-through-a-pipe/911213#911213
-	# 0: stdin, 1: stdout, 2: stderr
-	# [ -t 0 -a -t 1 ]
-}
-
 # Yes/no confirmation dialog with an optional message
 # @param $1 confirmation message
 # @author Leonid Makarov
@@ -98,11 +82,11 @@ _confirmAndReturn ()
 		read -p "$1 [y/n]: " answer
 		case "$answer" in
 			[Yy]|[Yy][Ee][Ss] )
-				echo 0
+				echo 1
 				break
 				;;
 			[Nn]|[Nn][Oo] )
-				echo 1
+				echo 0
 				break
 				;;
 			* )
@@ -140,8 +124,6 @@ esac
 echo-red () { echo -e "${red}$1${NC}"; }
 # @author Leonid Makarov
 echo-green () { echo -e "${green}$1${NC}"; }
-# @author Leonid Makarov
-echo-green-bg () { echo -e "${green_bg}$1${NC}"; }
 # @author Leonid Makarov
 echo-yellow () { echo -e "${yellow}$1${NC}"; }
 # @author Leonid Makarov
@@ -200,10 +182,11 @@ _ask_pw ()
 }
 
 #------------------------------ SETUP --------------------------------
+
 # Generate playbook files
 generate_playbooks()
 {
-  mkdir -p $ANDOCK_CI_PLAYBOOK
+  mkdir -p ${ANDOCK_CI_PLAYBOOK}
   echo "---
 - hosts: andock-ci-build-server
   roles:
@@ -249,7 +232,8 @@ generate_playbooks()
 }
 
 
-# Install ansible galaxy roles
+# Install ansible
+# and ansible galaxy roles
 install_pipeline()
 {
 
@@ -282,6 +266,8 @@ install_pipeline()
   echo-green ""
   echo-green "andock-ci pipeline was installed successfully"
 }
+
+# Install ansible galaxy roles.
 install_configuration ()
 {
   mkdir -p $ANDOCK_CI_INVENTORY_GLOBAL
@@ -405,11 +391,7 @@ get_git_origin_url ()
 # Returns the default project name
 get_default_project_name ()
 {
-  if [ "${ANDOCK_CI_PROJECT_NAME}" != "" ]; then
-    echo $(basename "$PWD")
-  else
-    echo "${ANDOCK_CI_PROJECT_NAME}"
-  fi
+  echo $(basename "$PWD")
 }
 
 find_root_path () {
@@ -448,7 +430,8 @@ get_branch_settings_path ()
   fi
 }
 
-
+# Parse the .andock-ci.yaml and
+# make all variables
 get_settings()
 {
   local settings_path=$(get_settings_path)
@@ -530,7 +513,7 @@ run_build ()
   if [[ $? == 0 ]]; then
     echo-green "Branch ${branch_name} was builded successfully"
   else
-    echo-error $DEFAULT_ERROR_MESSAGE
+    echo-error ${DEFAULT_ERROR_MESSAGE}
     exit 1;
   fi
 
@@ -578,9 +561,23 @@ run_fin ()
 
   local branch_settings_path=$(get_branch_settings_path)
 
+  # Load branch specific {branch}.andock-ci.yml file if exist.
   local branch_settings_config=""
   if [ "${branch_settings_path}" != "" ]; then
       local branch_settings_config="-e @${branch_settings_path}"
+  fi
+
+  # If no target repository path is configured no build process is expected.
+  # Use source git repository as target repository path.
+  # AND set target_branch_suffix='' to checkout the standard repository.
+  local repository_config=""
+  if [ "${config_git_target_repository_path}" == "" ]; then
+      local repository_config="git_target_repository_path='${config_git_source_repository_path}' target_branch_suffix=''"
+  fi
+
+
+  if [ "${config_git_repository_path}" != "" ]; then
+      local repository_config="git_target_repository_path='${config_git_repository_path}' target_branch_suffix=''"
   fi
 
   local branch_name=$(get_current_branch)
@@ -601,7 +598,7 @@ run_fin ()
     ;;
   esac
 
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "${repository_config}" -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
   if [[ $? == 0 ]]; then
     echo-green "fin ${tag} was finished successfully."
     local domains=$(echo $config_domain | tr " " "\n")
@@ -649,12 +646,24 @@ generate_config ()
     _confirm "Do you want to proceed and overwrite it?"
   fi
 
+
   local project_name=$(get_default_project_name)
   local git_source_repository_path=$(get_git_origin_url)
+  if [ "$git_source_repository_path" = "" ]; then
+    echo-red "No git repository found."
+    exit
+  fi
+
   local domain=$(_ask 'Please enter project dev domain. [Like: dev.project.com. Url is: branch.dev.project.com]')
-  local git_target_repository_path=$(_ask "Please enter git target repository path. [Leave empty to use ${git_source_repository_path}]")
-  if [ "$git_target_repository_path" = "" ]; then
-    git_target_repository_path=$git_source_repository_path
+  local build=$(_confirmAndReturn 'Do you want to build the project and push the result to a target repository?')
+  local git_target=""
+  if [ "$build" = 1 ]; then
+    local git_target_repository_path=$(_ask "Please enter git target repository path. [Leave empty to use ${git_source_repository_path}]")
+    local git_target="git_target_repository_path: ${git_target_repository_path}"
+  fi
+
+  if [ "${git_target_repository_path}" = "" ]; then
+    git_target_repository_path=${git_source_repository_path}
   fi
   mkdir -p ".andock-ci"
   mkdir -p ".andock-ci/hooks"
@@ -662,14 +671,14 @@ generate_config ()
   echo "project_name: \"${project_name}\"
 domain: \"${domain}\"
 git_source_repository_path: ${git_source_repository_path}
-git_target_repository_path: ${git_target_repository_path}
+${git_target}
 hook_build_tasks: \"{{project_path}}/.andock-ci/hooks/build_tasks.yml\"
 hook_init_tasks: \"{{project_path}}/.andock-ci/hooks/init_tasks.yml\"
 hook_update_tasks: \"{{project_path}}/.andock-ci/hooks/update_tasks.yml\"
 hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
 " > .andock-ci/andock-ci.yml
 
-  if [[ $(_confirmAndReturn "Do you use composer to build your project?") == 0 ]]; then
+  if [[ $(_confirmAndReturn "Do you use composer to build your project?") == 1 ]]; then
     generate_config_compser_hook "build"
   else
     generate_config_empty_hook "build"
@@ -682,9 +691,13 @@ hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
   generate_config_empty_hook "test"
 
   if [[ $? == 0 ]]; then
-    echo-green "Configuration was generated. Configure your hooks and start the pipeline with ${yellow}acp build${NC}"
+    if [ "$build" = 1 ]; then
+      echo-green "Configuration was generated. Configure your hooks and start the pipeline with ${yellow}acp build${NC}"
+    else
+      echo-green "Configuration was generated. Configure your hooks and start the pipeline with ${yellow}acp fin init${NC}"
+    fi
   else
-    echo-error $DEFAULT_ERROR_MESSAGE
+    echo-error ${DEFAULT_ERROR_MESSAGE}
   fi
 }
 
