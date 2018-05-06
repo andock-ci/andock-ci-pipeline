@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.2.0
+ANDOCK_CI_VERSION=0.3.0
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
 REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
@@ -411,8 +411,6 @@ check_settings_path ()
   fi
 }
 
-
-
 # Returns the path to andock-ci.yml
 get_settings_path ()
 {
@@ -431,7 +429,7 @@ get_branch_settings_path ()
 }
 
 # Parse the .andock-ci.yaml and
-# make all variables
+# make all variables accessable.
 get_settings()
 {
   local settings_path=$(get_settings_path)
