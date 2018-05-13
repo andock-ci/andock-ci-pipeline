@@ -4,9 +4,9 @@ cmd="acp"
 if [[ $2 != "" ]]; then
 	cmd="$cmd "$(printf " %q" "$@")
 else
-	cmd="$cmd $@"
+	cmd="$cmd $*"
 fi
-
+export CONTAINER_NAME='acp'
 fin exec "
 if [ ! -f \"/usr/local/bin/acp\" ]; then
  curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline | sh
