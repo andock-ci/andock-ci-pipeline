@@ -13,4 +13,5 @@ A command line tool managing remote docksal environments with ansible.
 
 # Getting started?
 
-See [andock-ci setup](http://andock-ci-pipeline.readthedocs.io/en/master/getting-started/setup)
+See [andock-ci setup](../getting-started/setup.md)
+
