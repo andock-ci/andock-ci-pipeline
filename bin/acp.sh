@@ -398,11 +398,12 @@ get_git_origin_url ()
 get_default_project_name ()
 {
   if [ "${ANDOCK_CI_PROJECT_NAME}" != "" ]; then
-    echo $(basename "$PWD")
+    echo "$(basename ${PWD})"
   else
     echo "${ANDOCK_CI_PROJECT_NAME}"
   fi
 }
+
 
 find_root_path () {
   path=$(pwd)
@@ -753,7 +754,6 @@ run_alias ()
 
 run_drush_generate ()
 {
-
   set -e
   check_settings_path
   get_settings
@@ -775,8 +775,7 @@ run_drush_generate ()
   'ssh-options' => '-o SendEnv=LC_ANDOCK_CI_ENV'
 );
 "
-    done
-
+  done
 }
 
 
@@ -876,7 +875,7 @@ cd "$root_path"
 command=$1
 shift
 
-# Finally. Run command.
+# Finally. Run the command.
 case "$command" in
   _install-pipeline)
     install_pipeline "$@"
