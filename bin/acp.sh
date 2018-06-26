@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.3.0
+ANDOCK_CI_VERSION=0.3.1
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
 REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
@@ -523,8 +523,7 @@ run_build ()
   if [ "${TRAVIS}" = "true" ]; then
     skip_tags="--skip-tags=\"setup,checkout\""
   fi
-
-  ansible-playbook -i "${ANDOCK_CI_INVENTORY}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" "$skip_tags" "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
+  ansible-playbook -i "${ANDOCK_CI_INVENTORY_GLOBAL}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
   if [[ $? == 0 ]]; then
     echo-green "Branch ${branch_name} was builded successfully"
   else
