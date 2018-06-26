@@ -7,6 +7,6 @@ setup() {
 }
 
 @test "build" {
-  ../../bin/acp.sh build
+  ../../bin/acp.sh build -e "branch=master"
 }
 
