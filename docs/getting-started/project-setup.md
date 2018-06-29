@@ -5,12 +5,13 @@
   acp:
     image: andockci/acp:dev-latest
 ```
-#### Restart docksal.
+#### Start acp container.
 ```
-fin restart
+fin up
 ```
 #### Install server. (If it's not done already.)
-See [Server setup](../getting-started/install-server.md)
+See [Server setup](/install-server.md)
+
 #### Configure your docksal project.
 ```
 acp config:generate
@@ -19,4 +20,4 @@ acp config:generate
 ```
 acp fin init
 ```
-## Done.
+## Congratulation your are done!.
