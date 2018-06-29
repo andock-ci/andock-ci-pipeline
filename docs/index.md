@@ -3,6 +3,6 @@
 
 ##Installation scenarios:
 
-* [Use inside docksal](../getting-started-docksal/setup.md)
-* Use on ci server: @TODO.
-* Standalone: TBD.
+* [Use andock-ci inside docksal](getting-started/docksal.md)
+* [Use docksal on your ci server](getting-started/ci.md)
+

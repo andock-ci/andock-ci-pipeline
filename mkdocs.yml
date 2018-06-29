@@ -1,7 +1,7 @@
 site_name: andock-ci pipeline Documentation
 theme: readthedocs
 theme_dir: docs/_custom_theme
-repo_url: https://github.com/docksal/docksal
+repo_url: https://github.com/andock-ci/pipeline
 site_url: https://docs.andock-ci
 extra_css:
   - _css/extra.css
@@ -10,10 +10,8 @@ markdown_extensions:
 pages:
   - Home: index.md
   - Getting started:
-    - Setup instructions: getting-started/setup.md
     - System requirements: getting-started/system-requirements.md
-    - Docksal setup: getting-started/env-setup.md
-    - Project setup: getting-started/project-setup.md
-    - Docker for Mac/Windows: getting-started/env-setup-native.md
-    - Upgrading from Drude (DDE): getting-started/upgrade-dde.md
-    - Portable installation: getting-started/portable.md
+    - Setup instructions docksal addon: getting-started/docksal.md
+    - Setup instructions ci agent: getting-started/ci.md
+    - Install server: getting-started/install-server.md
+
