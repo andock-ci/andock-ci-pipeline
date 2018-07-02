@@ -1,11 +1,11 @@
 # andock-ci-pipeline (acp) - docksal remote control
 ## What is andock?
 A command line tool managing remote docksal environments with ansible.   
-##Key features
+## Key features
 * Easy to use command line tool.
 * Use ansible to remote control docksal.
 * Easy configuration.
-* Each branch one environment.
+* One environment per branch.
 * Extendable with init, update, tests ansible hooks.
 * drush support including drush sql-sync without extra ssh container.
 * Easy to integrate in your CI environment.
@@ -15,9 +15,10 @@ A command line tool managing remote docksal environments with ansible.
 
 
 # Getting started?
+[Read the docs!](https://andock-ci-pipeline.readthedocs.io/en/develop/)
 
-##Installation scenarios:
+## Installation scenarios:
 
-* [Use inside docksal](../getting-started-docksal/setup.md)
-* Use on ci server: @TODO.
+* [Use inside docksal](https://andock-ci-pipeline.readthedocs.io/en/develop/getting-started/docksal/)
+* [Use on ci server](https://andock-ci-pipeline.readthedocs.io/en/develop/getting-started/ci/)
 * Standalone: TBD.
