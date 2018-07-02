@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: debian:stretch
+      - image: docksal/cli:2.0-php7.1
     steps:
       - checkout
       - run:
