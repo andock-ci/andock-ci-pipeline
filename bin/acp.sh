@@ -196,33 +196,33 @@ generate_playbooks()
     echo "---
 - hosts: andock-ci-build-server
   roles:
-    - { role: andock-ci.build }
+    - { role: andock_ci.build }
 " > "${ANDOCK_CI_PLAYBOOK}/build.yml"
 
     echo "---
 - hosts: andock-ci-docksal-server
   gather_facts: true
   roles:
-    - { role: andock-ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
+    - { role: andock_ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
 " > "${ANDOCK_CI_PLAYBOOK}/fin.yml"
 
     echo "---
 - hosts: andock-ci-build-server
   roles:
-    - { role: andock-ci.tag, git_repository_path: \"{{ git_source_repository_path }}\" }
+    - { role: andock_ci.tag, git_repository_path: \"{{ git_source_repository_path }}\" }
 " > "${ANDOCK_CI_PLAYBOOK}/tag_source.yml"
 
     echo "---
 - hosts: andock-ci-build-server
   roles:
-    - { role: andock-ci.tag, git_repository_path: \"{{ git_target_repository_path }}\" }
+    - { role: andock_ci.tag, git_repository_path: \"{{ git_target_repository_path }}\" }
 " > "${ANDOCK_CI_PLAYBOOK}/tag_target.yml"
 
 
     echo "---
 - hosts: andock-ci-docksal-server
   roles:
-    - role: j0lly.ssh-keys
+    - role: andock_ci.ansible_role_ssh_keys
       ssh_keys_clean: False
       ssh_keys_user:
         andock-ci:
@@ -232,7 +232,7 @@ generate_playbooks()
     echo "---
 - hosts: andock-ci-docksal-server
   roles:
-    - { role: andock-ci.server }
+    - { role: andock_ci.server }
 " > "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
 
 }
@@ -275,13 +275,13 @@ install_pipeline()
 install_configuration ()
 {
     mkdir -p $ANDOCK_CI_INVENTORY_GLOBAL
-    export ANSIBLE_RETRY_FILES_ENABLED="False"
+    #export ANSIBLE_RETRY_FILES_ENABLED="False"
     generate_playbooks
     echo-green "Installing roles:"
+    ansible-galaxy install andock_ci.ansible_role_ssh_keys,v${REQUIREMENTS_SSH_KEYS} --force
     ansible-galaxy install andock_ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
     ansible-galaxy install andock_ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
     ansible-galaxy install andock_ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
-    ansible-galaxy install j0lly.ssh-keys,v${REQUIREMENTS_SSH_KEYS} --force
     echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
@@ -399,7 +399,6 @@ get_git_origin_url ()
 # Returns the default project name
 get_default_project_name ()
 {
-    echo "$(basename $(pwd))"
     if [ "${ANDOCK_CI_PROJECT_NAME}" != "" ]; then
         echo "$(basename ${PWD})"
     else
@@ -877,7 +876,7 @@ case "$1" in
     ;;
 esac
 
-org_path=$(pwd)
+org_path=${PWD}
 # ansible playbooks needs to be called from project_root.
 # So cd to root path
 root_path=$(find_root_path)
