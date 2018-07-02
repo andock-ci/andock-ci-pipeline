@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.3.1
+ANDOCK_CI_VERSION=0.3.2
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
 REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
@@ -17,6 +17,7 @@ ANDOCK_CI_HOME="$HOME/.andock-ci"
 ANDOCK_CI_INVENTORY="./.andock-ci/connections"
 ANDOCK_CI_INVENTORY_GLOBAL="$ANDOCK_CI_HOME/connections"
 ANDOCK_CI_PLAYBOOK="$ANDOCK_CI_HOME/playbooks"
+ANDOCK_CI_PROJECT_NAME=""
 
 URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
 URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
@@ -236,7 +237,6 @@ generate_playbooks()
 
 }
 
-
 # Install ansible
 # and ansible galaxy roles
 install_pipeline()
@@ -288,6 +288,7 @@ localhost ansible_connection=local
 " > "${ANDOCK_CI_INVENTORY_GLOBAL}/build"
 
 }
+
 # Based on docksal update script
 # @author Leonid Makarov
 self_update()
@@ -325,7 +326,6 @@ self_update()
         echo-rewrite "Updating andock-ci pipeline... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
     fi
 }
-
 
 #------------------------------ HELP --------------------------------
 
@@ -399,6 +399,7 @@ get_git_origin_url ()
 # Returns the default project name
 get_default_project_name ()
 {
+    echo "$(basename $(pwd))"
     if [ "${ANDOCK_CI_PROJECT_NAME}" != "" ]; then
         echo "$(basename ${PWD})"
     else
@@ -682,7 +683,6 @@ generate_config ()
         echo-yellow ".andock-ci/andock-ci.yml already exists"
         _confirm "Do you want to proceed and overwrite it?"
     fi
-
     local project_name
     project_name=$(get_default_project_name)
     local git_source_repository_path
@@ -692,20 +692,19 @@ generate_config ()
         exit
     fi
 
-    local domain
-    domain=$(_ask 'Please enter project dev domain. [Like: dev.project.com. Url is: branch.dev.project.com]')
-    local build
-    build=$(_confirmAndReturn 'Do you want to build the project and push the result to a target repository?')
+    local domain && domain=$(_ask "Please enter project dev domain. [Like: dev.project.com. Url is: branch.dev.project.com]")
+    local build && build=$(_confirmAndReturn "Do you want to build the project and push the result to a target repository?")
     local git_target=""
     if [ "$build" = 1 ]; then
         local git_target_repository_path
         git_target_repository_path=$(_ask "Please enter git target repository path. [Leave empty to use ${git_source_repository_path}]")
+        # Set to source repository if empty.
+        if [ "${git_target_repository_path}" = "" ]; then
+            git_target_repository_path=${git_source_repository_path}
+        fi
         local git_target="git_target_repository_path: ${git_target_repository_path}"
     fi
 
-    if [ "${git_target_repository_path}" = "" ]; then
-        git_target_repository_path=${git_source_repository_path}
-    fi
     mkdir -p ".andock-ci"
     mkdir -p ".andock-ci/hooks"
 
@@ -719,7 +718,7 @@ hook_update_tasks: \"{{project_path}}/.andock-ci/hooks/update_tasks.yml\"
 hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
 " > .andock-ci/andock-ci.yml
 
-    if [[ $(_confirmAndReturn "Do you use composer to build your project?") == 1 ]]; then
+    if [[ "$build" = 1 && $(_confirmAndReturn "Do you use composer to build your project?") == 1 ]]; then
         generate_config_compser_hook "build"
     else
         generate_config_empty_hook "build"
@@ -878,6 +877,7 @@ case "$1" in
     ;;
 esac
 
+org_path=$(pwd)
 # ansible playbooks needs to be called from project_root.
 # So cd to root path
 root_path=$(find_root_path)
@@ -908,6 +908,7 @@ case "$command" in
     generate_playbooks
   ;;
   generate:config)
+    cd $org_path
     generate_config
   ;;
   connect)
