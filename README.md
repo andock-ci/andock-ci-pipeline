@@ -18,5 +18,5 @@ A command line tool managing remote docksal environments with ansible.
 
 ## Installation scenarios:
 
-* [Use inside docksal](https://andock-ci-pipeline.readthedocs.io/en/develop/getting-started/docksal/)
-* [Use on ci server](https://andock-ci-pipeline.readthedocs.io/en/develop/getting-started/ci/)
+* [Use inside docksal](https://andock-ci-pipeline.readthedocs.io/en/stable/getting-started/docksal/)
+* [Use on ci server](https://andock-ci-pipeline.readthedocs.io/en/stable/getting-started/ci/)

@@ -1,17 +1,12 @@
 site_name: andock-ci pipeline Documentation
 theme: readthedocs
-theme_dir: docs/_custom_theme
 repo_url: https://github.com/andock-ci/pipeline
 site_url: https://docs.andock-ci
-extra_css:
-  - _css/extra.css
 markdown_extensions:
   - markdown.extensions.admonition
 pages:
   - Home: index.md
   - Getting started:
-    - System requirements: getting-started/system-requirements.md
-    - Setup instructions docksal addon: getting-started/docksal.md
-    - Setup instructions ci agent: getting-started/ci.md
-    - Install server: getting-started/install-server.md
+    - Use with docksal: getting-started/docksal.md
+    - Use with ci: getting-started/ci.md
 
