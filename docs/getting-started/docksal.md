@@ -4,30 +4,37 @@
 ## 1. Installation
 
 [System requirements](/system-requirements.md)
-#### Add acp container to your .docksal/docksal.yml. 
-(Should be done through docksal add on.) 
+#### Enable acp in your project
 ```
- # ACP
- acp:
-   image: andockci/acp:dev-latest
-   ```
+fin acp enable
+```
+#### Setup the acp server
+The easiest way to test andock-ci is to create a cloud box on aws or digital ocean etc. with ubuntu 16.04 or 18.04.
 
-#### Install wrapper. 
-(Right now it is a slim wrapper script which calls acp inside the acp container. Later this should be a docksal add on.)
+After that run:
+
 ```
-    curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline-docksal | sh
+fin acp connect
+fin acp server:install
+fin acp server:ssh-add "ssh-rsa AAAAB3NzaC1yc2EA ..."
 ```
-#### Server setup 
-[See documentation](/install-server.md)
-#### Project configuration.
+
+#### Generate project configuration
 ```
-acp config:generate
+fin acp config:generate
 ```
-#### Init remote docksal.
+
+This will create some required config files and templates for init, build, test and update hooks. 
+#### Initialize remote environment
 ```
-acp fin init
+fin acp fin init
 ```
-## Congratulation your are done!.
+
+#### Update remote environment
+```
+fin acp fin up
+```
+## Congratulations, the installation is finished!
 
 3. [Configuring your docksal project to use andock-ci](/project-setup.md)
 
