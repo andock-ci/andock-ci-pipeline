@@ -1,29 +1,29 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.3.2
+ANDOCK_VERSION=0.3.2
 
-REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
-REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
-REQUIREMENTS_ANDOCK_CI_SERVER='0.1.0'
+REQUIREMENTS_ANDOCK_BUILD='0.1.0'
+REQUIREMENTS_ANDOCK_FIN='0.2.1'
+REQUIREMENTS_ANDOCK_SERVER='0.1.0'
 REQUIREMENTS_SSH_KEYS='0.3'
 
 DEFAULT_CONNECTION_NAME="default"
 
-ANDOCK_CI_PATH="/usr/local/bin/acp"
-ANDOCK_CI_PATH_UPDATED="/usr/local/bin/acp.updated"
+ANDOCK_PATH="/usr/local/bin/acp"
+ANDOCK_PATH_UPDATED="/usr/local/bin/acp.updated"
 
-ANDOCK_CI_HOME="$HOME/.andock-ci"
-ANDOCK_CI_INVENTORY="./.andock-ci/connections"
-ANDOCK_CI_INVENTORY_GLOBAL="$ANDOCK_CI_HOME/connections"
-ANDOCK_CI_PLAYBOOK="$ANDOCK_CI_HOME/playbooks"
-ANDOCK_CI_PROJECT_NAME=""
+ANDOCK_HOME="$HOME/.andock"
+ANDOCK_INVENTORY="./.andock/connections"
+ANDOCK_INVENTORY_GLOBAL="$ANDOCK_HOME/connections"
+ANDOCK_PLAYBOOK="$ANDOCK_HOME/playbooks"
+ANDOCK_PROJECT_NAME=""
 
-URL_REPO="https://raw.githubusercontent.com/andock-ci/pipeline"
-URL_ANDOCK_CI="${URL_REPO}/master/bin/acp.sh"
+URL_REPO="https://raw.githubusercontent.com/andock/pipeline"
+URL_ANDOCK="${URL_REPO}/master/bin/acp.sh"
 DEFAULT_ERROR_MESSAGE="Oops. There is probably something wrong. Check the logs."
 
-export ANSIBLE_ROLES_PATH="${ANDOCK_CI_HOME}/roles"
+export ANSIBLE_ROLES_PATH="${ANDOCK_HOME}/roles"
 
 export ANSIBLE_HOST_KEY_CHECKING=False
 
@@ -192,48 +192,48 @@ _ask_pw ()
 # Generate playbook files
 generate_playbooks()
 {
-    mkdir -p ${ANDOCK_CI_PLAYBOOK}
+    mkdir -p ${ANDOCK_PLAYBOOK}
     echo "---
-- hosts: andock-ci-build-server
+- hosts: andock-build-server
   roles:
-    - { role: andock-ci.build }
-" > "${ANDOCK_CI_PLAYBOOK}/build.yml"
+    - { role: andock.build }
+" > "${ANDOCK_PLAYBOOK}/build.yml"
 
     echo "---
-- hosts: andock-ci-docksal-server
+- hosts: andock-docksal-server
   gather_facts: true
   roles:
-    - { role: andock-ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
-" > "${ANDOCK_CI_PLAYBOOK}/fin.yml"
+    - { role: andock.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
+" > "${ANDOCK_PLAYBOOK}/fin.yml"
 
     echo "---
-- hosts: andock-ci-build-server
+- hosts: andock-build-server
   roles:
-    - { role: andock-ci.tag, git_repository_path: \"{{ git_source_repository_path }}\" }
-" > "${ANDOCK_CI_PLAYBOOK}/tag_source.yml"
+    - { role: andock.tag, git_repository_path: \"{{ git_source_repository_path }}\" }
+" > "${ANDOCK_PLAYBOOK}/tag_source.yml"
 
     echo "---
-- hosts: andock-ci-build-server
+- hosts: andock-build-server
   roles:
-    - { role: andock-ci.tag, git_repository_path: \"{{ git_target_repository_path }}\" }
-" > "${ANDOCK_CI_PLAYBOOK}/tag_target.yml"
+    - { role: andock.tag, git_repository_path: \"{{ git_target_repository_path }}\" }
+" > "${ANDOCK_PLAYBOOK}/tag_target.yml"
 
 
     echo "---
-- hosts: andock-ci-docksal-server
+- hosts: andock-docksal-server
   roles:
     - role: j0lly.ssh-keys
       ssh_keys_clean: False
       ssh_keys_user:
-        andock-ci:
+        andock:
           - \"{{ ssh_key }}\"
-" > "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
+" > "${ANDOCK_PLAYBOOK}/server_ssh_add.yml"
 
     echo "---
-- hosts: andock-ci-docksal-server
+- hosts: andock-docksal-server
   roles:
-    - { role: andock-ci.server }
-" > "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+    - { role: andock.server }
+" > "${ANDOCK_PLAYBOOK}/server_install.yml"
 
 }
 
@@ -242,7 +242,7 @@ generate_playbooks()
 install_pipeline()
 {
     echo-green ""
-    echo-green "Installing andock-ci pipeline version: ${ANDOCK_CI_VERSION} ..."
+    echo-green "Installing andock pipeline version: ${ANDOCK_VERSION} ..."
 
     echo-green ""
     echo-green "Installing ansible:"
@@ -268,24 +268,24 @@ install_pipeline()
 
     install_configuration
     echo-green ""
-    echo-green "andock-ci pipeline was installed successfully"
+    echo-green "andock pipeline was installed successfully"
 }
 
 # Install ansible galaxy roles.
 install_configuration ()
 {
-    mkdir -p $ANDOCK_CI_INVENTORY_GLOBAL
+    mkdir -p $ANDOCK_INVENTORY_GLOBAL
     export ANSIBLE_RETRY_FILES_ENABLED="False"
     generate_playbooks
     echo-green "Installing roles:"
-    ansible-galaxy install andock_ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
-    ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
-    ansible-galaxy install andock-ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
+    ansible-galaxy install andock.build,v${REQUIREMENTS_ANDOCK_BUILD} --force
+    ansible-galaxy install andock.fin,v${REQUIREMENTS_ANDOCK_FIN} --force
+    ansible-galaxy install andock.server,v${REQUIREMENTS_ANDOCK_SERVER} --force
     ansible-galaxy install j0lly.ssh-keys,v${REQUIREMENTS_SSH_KEYS} --force
     echo "
-[andock-ci-build-server]
+[andock-build-server]
 localhost ansible_connection=local
-" > "${ANDOCK_CI_INVENTORY_GLOBAL}/build"
+" > "${ANDOCK_INVENTORY_GLOBAL}/build"
 
 }
 
@@ -293,37 +293,37 @@ localhost ansible_connection=local
 # @author Leonid Makarov
 self_update()
 {
-    echo-green "Updating andock-ci pipeline..."
-    local new_andock_ci
-    new_andock_ci=$(curl -kfsSL "$URL_ANDOCK_CI?r=$RANDOM")
-    if_failed_error "andock_ci download failed."
+    echo-green "Updating andock pipeline..."
+    local new_ANDOCK
+    new_ANDOCK=$(curl -kfsSL "$URL_ANDOCK?r=$RANDOM")
+    if_failed_error "ANDOCK download failed."
 
     # Check if fin update is required and whether it is a major version
     local new_version
-    new_version=$(echo "$new_andock_ci" | grep "^ANDOCK_CI_VERSION=" | cut -f 2 -d "=")
-    if [[ "$new_version" != "$ANDOCK_CI_VERSION" ]]; then
+    new_version=$(echo "$new_ANDOCK" | grep "^ANDOCK_VERSION=" | cut -f 2 -d "=")
+    if [[ "$new_version" != "$ANDOCK_VERSION" ]]; then
         local current_major_version
-        current_major_version=$(echo "$ANDOCK_CI_VERSION" | cut -d "." -f 1)
+        current_major_version=$(echo "$ANDOCK_VERSION" | cut -d "." -f 1)
         local new_major_version
         new_major_version=$(echo "$new_version" | cut -d "." -f 1)
         if [[ "$current_major_version" != "$new_major_version" ]]; then
             echo -e "${red_bg} WARNING ${NC} ${red}Non-backwards compatible version update${NC}"
-            echo -e "Updating from ${yellow}$ANDOCK_CI_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
+            echo -e "Updating from ${yellow}$ANDOCK_VERSION${NC} to ${yellow}$new_version${NC} is not backward compatible."
             _confirm "Continue with the update?"
         fi
 
         # saving to file
-        echo "$new_andock_ci" | sudo tee "$ANDOCK_CI_PATH_UPDATED" > /dev/null
-        if_failed_error "Could not write $ANDOCK_CI_PATH_UPDATED"
-        sudo chmod +x "$ANDOCK_CI_PATH_UPDATED"
-        echo-green "andock-ci pipeline $new_version downloaded..."
+        echo "$new_ANDOCK" | sudo tee "$ANDOCK_PATH_UPDATED" > /dev/null
+        if_failed_error "Could not write $ANDOCK_PATH_UPDATED"
+        sudo chmod +x "$ANDOCK_PATH_UPDATED"
+        echo-green "andock pipeline $new_version downloaded..."
 
         # overwrite old fin
-        sudo mv "$ANDOCK_CI_PATH_UPDATED" "$ANDOCK_CI_PATH"
+        sudo mv "$ANDOCK_PATH_UPDATED" "$ANDOCK_PATH"
         acp cup
         exit
     else
-        echo-rewrite "Updating andock-ci pipeline... $ANDOCK_CI_VERSION ${green}[OK]${NC}"
+        echo-rewrite "Updating andock pipeline... $ANDOCK_VERSION ${green}[OK]${NC}"
     fi
 }
 
@@ -333,20 +333,20 @@ self_update()
 show_help ()
 {
     echo
-    printh "andock-ci pipeline command reference" "${ANDOCK_CI_VERSION}" "green"
+    printh "andock pipeline command reference" "${ANDOCK_VERSION}" "green"
     echo
-    printh "connect" "Connect andock-ci pipeline to andock-ci server"
+    printh "connect" "Connect andock pipeline to andock server"
     printh "(.) ssh-add <ssh-key>" "Add private SSH key <ssh-key> variable to the agent store."
 
     echo
     printh "Server management:" "" "yellow"
-    printh "server:install [root_user, default=root] [andock_ci_pass, default=keygen]" "Install andock-ci server."
-    printh "server:update [root_user, default=root]" "Update andock-ci server."
-    printh "server:ssh-add [root_user, default=root]" "Add public ssh key to andock-ci server."
+    printh "server:install [root_user, default=root] [ANDOCK_pass, default=keygen]" "Install andock server."
+    printh "server:update [root_user, default=root]" "Update andock server."
+    printh "server:ssh-add [root_user, default=root]" "Add public ssh key to andock server."
 
     echo
     printh "Project configuration:" "" "yellow"
-    printh "generate:config" "Generate andock-ci project configuration."
+    printh "generate:config" "Generate andock project configuration."
     echo
     printh "Project build management:" "" "yellow"
     printh "build" "Build project and push it to target branch."
@@ -366,10 +366,10 @@ show_help ()
     printh "drush:generate-alias" "Generate drush alias."
 
     echo
-    printh "version (v, -v)" "Print andock-ci version. [v, -v] - prints short version"
-    printh "alias" "Print andock-ci alias."
+    printh "version (v, -v)" "Print andock version. [v, -v] - prints short version"
+    printh "alias" "Print andock alias."
     echo
-    printh "self-update" "${yellow}Update andock-ci${NC}" "yellow"
+    printh "self-update" "${yellow}Update andock${NC}" "yellow"
 }
 
 # Display acp version
@@ -377,13 +377,13 @@ show_help ()
 version ()
 {
 	if [[ $1 == '--short' ]]; then
-		echo "$ANDOCK_CI_VERSION"
+		echo "$ANDOCK_VERSION"
 	else
-		echo "andock-ci pipeline (acp) version: $ANDOCK_CI_VERSION"
+		echo "andock pipeline (acp) version: $ANDOCK_VERSION"
 		echo "Roles:"
-		echo "andock-ci.build: $REQUIREMENTS_ANDOCK_CI_BUILD"
-		echo "andock-ci.fin: $REQUIREMENTS_ANDOCK_CI_FIN"
-		echo "andock-ci.server: $REQUIREMENTS_ANDOCK_CI_SERVER"
+		echo "andock.build: $REQUIREMENTS_ANDOCK_BUILD"
+		echo "andock.fin: $REQUIREMENTS_ANDOCK_FIN"
+		echo "andock.server: $REQUIREMENTS_ANDOCK_SERVER"
 	fi
 
 }
@@ -400,60 +400,60 @@ get_git_origin_url ()
 get_default_project_name ()
 {
     echo "$(basename $(pwd))"
-    if [ "${ANDOCK_CI_PROJECT_NAME}" != "" ]; then
+    if [ "${ANDOCK_PROJECT_NAME}" != "" ]; then
         echo "$(basename ${PWD})"
     else
-        echo "${ANDOCK_CI_PROJECT_NAME}"
+        echo "${ANDOCK_PROJECT_NAME}"
     fi
 }
 
 # Returns the path project root folder.
 find_root_path () {
     path=$(pwd)
-    while [[ "$path" != "" && ! -e "$path/.andock-ci" ]]; do
+    while [[ "$path" != "" && ! -e "$path/.andock" ]]; do
         path=${path%/*}
     done
     echo "$path"
 }
 
-# Check for connection inventory file in .andock-ci/connections/$1
+# Check for connection inventory file in .andock/connections/$1
 check_connect()
 {
-  if [ ! -f "${ANDOCK_CI_INVENTORY}/$1" ]; then
+  if [ ! -f "${ANDOCK_INVENTORY}/$1" ]; then
     echo-red "No alias \"${1}\" exists. Please run acp connect."
     exit 1
   fi
 }
 
-# Checks if andock-ci.yml exists.
+# Checks if andock.yml exists.
 check_settings_path ()
 {
-    local path="$PWD/.andock-ci/andock-ci.yml"
+    local path="$PWD/.andock/andock.yml"
     if [ ! -f $path ]; then
         echo-error "Settings not found. Run acp generate:config"
         exit 1
     fi
 }
 
-# Returns the path to andock-ci.yml
+# Returns the path to andock.yml
 get_settings_path ()
 {
-    local path="$PWD/.andock-ci/andock-ci.yml"
+    local path="$PWD/.andock/andock.yml"
     echo $path
 }
 
-# Returns the path to andock-ci.yml
+# Returns the path to andock.yml
 get_branch_settings_path ()
 {
     local branch
     branch=$(get_current_branch)
-    local path="$PWD/.andock-ci/andock-ci.${branch}.yml"
+    local path="$PWD/.andock/andock.${branch}.yml"
     if [ -f $path ]; then
         echo $path
     fi
 }
 
-# Parse the .andock-ci.yaml and
+# Parse the .andock.yaml and
 # make all variables accessable.
 get_settings()
 {
@@ -481,9 +481,9 @@ get_current_branch ()
 
 #----------------------- ANSIBLE PLAYBOOK WRAPPERS ------------------------
 
-# Generate ansible inventory files inside .andock-ci/connections folder.
+# Generate ansible inventory files inside .andock/connections folder.
 # @param $1 The Connection name.
-# @param $2 The andock-ci host name.
+# @param $2 The andock host name.
 # @param $3 The exec path.
 run_connect ()
 {
@@ -497,7 +497,7 @@ run_connect ()
 
   if [ "$1" = "" ]; then
     local host=
-    host=$(_ask "Please enter andock-ci server domain or ip")
+    host=$(_ask "Please enter andock server domain or ip")
   else
     local host=$1
     shift
@@ -507,17 +507,17 @@ run_connect ()
       local connection_name=$DEFAULT_CONNECTION_NAME
   fi
 
-  mkdir -p ".andock-ci/connections"
+  mkdir -p ".andock/connections"
 
   echo "
-[andock-ci-docksal-server]
-$host ansible_connection=ssh ansible_user=andock-ci
-" > "${ANDOCK_CI_INVENTORY}/${connection_name}"
+[andock-docksal-server]
+$host ansible_connection=ssh ansible_user=andock
+" > "${ANDOCK_INVENTORY}/${connection_name}"
 
   echo-green "Connection configuration was created successfully."
 }
 
-# Ansible playbook wrapper for andock-ci.build role.
+# Ansible playbook wrapper for andock.build role.
 run_build ()
 {
     check_settings_path
@@ -531,7 +531,7 @@ run_build ()
     if [ "${TRAVIS}" = "true" ]; then
         skip_tags="--skip-tags=\"setup,checkout\""
     fi
-    ansible-playbook -i "${ANDOCK_CI_INVENTORY_GLOBAL}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_CI_PLAYBOOK}/build.yml
+    ansible-playbook -i "${ANDOCK_INVENTORY_GLOBAL}/build" -e "@${settings_path}" -e "project_path=$PWD build_path=$PWD branch=$branch_name" $skip_tags "$@" ${ANDOCK_PLAYBOOK}/build.yml
     if [[ $? == 0 ]]; then
         echo-green "Branch ${branch_name} was builded successfully"
     else
@@ -540,7 +540,7 @@ run_build ()
     fi
 }
 
-# Ansible playbook wrapper for role andock-ci.fin
+# Ansible playbook wrapper for role andock.fin
 # @param $1 The Connection.
 # @param $2 The fin command.
 # @param $3 The exec path.
@@ -564,7 +564,7 @@ run_fin_run ()
     local exec_path=$1 && shift
 
     # Run the playbook.
-    ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags "exec" -e "@${settings_path}" ${branch_settings_config} -e "exec_command='$exec_command' exec_path='$exec_path' project_path=$PWD branch=${branch_name}" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+    ansible-playbook -i "${ANDOCK_INVENTORY}/${connection}" --tags "exec" -e "@${settings_path}" ${branch_settings_config} -e "exec_command='$exec_command' exec_path='$exec_path' project_path=$PWD branch=${branch_name}" ${ANDOCK_PLAYBOOK}/fin.yml
     if [[ $? == 0 ]]; then
         echo-green "fin exec was finished successfully."
     else
@@ -573,7 +573,7 @@ run_fin_run ()
     fi
 }
 
-# Ansible playbook wrapper for role andock-ci.fin
+# Ansible playbook wrapper for role andock.fin
 # @param $1 Connection
 # @param $2 Tag
 run_fin ()
@@ -587,7 +587,7 @@ run_fin ()
     settings_path="$(get_settings_path)"
     get_settings
 
-    # Load branch specific {branch}.andock-ci.yml file if exist.
+    # Load branch specific {branch}.andock.yml file if exist.
     local branch_settings_path
     branch_settings_path="$(get_branch_settings_path)"
     local branch_settings_config=""
@@ -626,7 +626,7 @@ run_fin ()
     esac
 
     # Run the playbook.
-    ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" --tags $tag -e "${repository_config}" -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_CI_PLAYBOOK}/fin.yml
+    ansible-playbook -i "${ANDOCK_INVENTORY}/${connection}" --tags $tag -e "${repository_config}" -e "@${settings_path}" ${branch_settings_config} -e "project_path=$PWD branch=${branch_name}" "$@" ${ANDOCK_PLAYBOOK}/fin.yml
 
     # Handling playbook results.
     if [[ $? == 0 ]]; then
@@ -651,12 +651,12 @@ run_fin ()
 # @param $1 The hook name.
 generate_config_fin_hook()
 {
-    echo "- name: Init andock-ci environment
+    echo "- name: Init andock environment
   command: \"fin $1\"
   args:
     chdir: \"{{ docroot_path }}\"
   when: environment_exists_before == false
-" > ".andock-ci/hooks/$1_tasks.yml"
+" > ".andock/hooks/$1_tasks.yml"
 }
 
 # Generate composer hook.
@@ -666,21 +666,21 @@ generate_config_compser_hook()
   command: \"composer install\"
   args:
     chdir: \"{{ checkout_path }}\"
-" > ".andock-ci/hooks/$1_tasks.yml"
+" > ".andock/hooks/$1_tasks.yml"
 }
 
 # Generate empty hook file.
 # @param $1 The hook name.
 generate_config_empty_hook()
 {
-    echo "---" > ".andock-ci/hooks/$1_tasks.yml"
+    echo "---" > ".andock/hooks/$1_tasks.yml"
 }
 
 # Generate configuration.
 generate_config ()
 {
-    if [[ -f ".andock-ci/andock-ci.yml" ]]; then
-        echo-yellow ".andock-ci/andock-ci.yml already exists"
+    if [[ -f ".andock/andock.yml" ]]; then
+        echo-yellow ".andock/andock.yml already exists"
         _confirm "Do you want to proceed and overwrite it?"
     fi
     local project_name
@@ -705,18 +705,18 @@ generate_config ()
         local git_target="git_target_repository_path: ${git_target_repository_path}"
     fi
 
-    mkdir -p ".andock-ci"
-    mkdir -p ".andock-ci/hooks"
+    mkdir -p ".andock"
+    mkdir -p ".andock/hooks"
 
     echo "project_name: \"${project_name}\"
 domain: \"${domain}\"
 git_source_repository_path: ${git_source_repository_path}
 ${git_target}
-hook_build_tasks: \"{{project_path}}/.andock-ci/hooks/build_tasks.yml\"
-hook_init_tasks: \"{{project_path}}/.andock-ci/hooks/init_tasks.yml\"
-hook_update_tasks: \"{{project_path}}/.andock-ci/hooks/update_tasks.yml\"
-hook_test_tasks: \"{{project_path}}/.andock-ci/hooks/test_tasks.yml\"
-" > .andock-ci/andock-ci.yml
+hook_build_tasks: \"{{project_path}}/.andock/hooks/build_tasks.yml\"
+hook_init_tasks: \"{{project_path}}/.andock/hooks/init_tasks.yml\"
+hook_update_tasks: \"{{project_path}}/.andock/hooks/update_tasks.yml\"
+hook_test_tasks: \"{{project_path}}/.andock/hooks/test_tasks.yml\"
+" > .andock/andock.yml
 
     if [[ "$build" = 1 && $(_confirmAndReturn "Do you use composer to build your project?") == 1 ]]; then
         generate_config_compser_hook "build"
@@ -783,8 +783,8 @@ run_drush_generate ()
   'root' => '/var/www/drupal',
   'uri' => '${url}',
   'remote-host' => '${url}',
-  'remote-user' => 'andock-ci',
-  'ssh-options' => '-o SendEnv=LC_ANDOCK_CI_ENV'
+  'remote-user' => 'andock',
+  'ssh-options' => '-o SendEnv=LC_ANDOCK_ENV'
 );
 "
         done
@@ -793,7 +793,7 @@ run_drush_generate ()
 
 #----------------------------------- SERVER -----------------------------------
 
-# Add ssh key to andock-ci user.
+# Add ssh key to andock user.
 run_server_ssh_add ()
 {
     set -e
@@ -810,11 +810,11 @@ run_server_ssh_add ()
         shift
     fi
 
-    ansible-playbook -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "ssh_key='$ssh_key'" "${ANDOCK_CI_PLAYBOOK}/server_ssh_add.yml"
+    ansible-playbook -i "${ANDOCK_INVENTORY}/${connection}" -e "ssh_key='$ssh_key'" "${ANDOCK_PLAYBOOK}/server_ssh_add.yml"
     echo-green "SSH key was added."
 }
 
-# Install andock-ci.
+# Install andock.
 run_server_install ()
 {
     local connection=$1
@@ -824,10 +824,10 @@ run_server_install ()
     set -e
 
     if [ "$1" = "" ]; then
-        local andock_ci_pw
-        andock_ci_pw=$(openssl rand -base64 32)
+        local ANDOCK_pw
+        ANDOCK_pw=$(openssl rand -base64 32)
     else
-        local andock_ci_pw=$1
+        local ANDOCK_pw=$1
         shift
     fi
 
@@ -838,16 +838,16 @@ run_server_install ()
         shift
     fi
 
-    local andock_ci_pw_enc
-    andock_ci_pw_enc=$(mkpasswd --method=sha-512 $andock_ci_pw)
+    local ANDOCK_pw_enc
+    ANDOCK_pw_enc=$(mkpasswd --method=sha-512 $ANDOCK_pw)
 
-    ansible andock-ci-docksal-server -e "ansible_ssh_user=$root_user" -i "${ANDOCK_CI_INVENTORY}/${connection}"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
-    ansible-playbook -e "ansible_ssh_user=$root_user" --tags $tag -i "${ANDOCK_CI_INVENTORY}/${connection}" -e "pw='$andock_ci_pw_enc'" "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
+    ansible andock-docksal-server -e "ansible_ssh_user=$root_user" -i "${ANDOCK_INVENTORY}/${connection}"  -m raw -a "test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)"
+    ansible-playbook -e "ansible_ssh_user=$root_user" --tags $tag -i "${ANDOCK_INVENTORY}/${connection}" -e "pw='$ANDOCK_pw_enc'" "${ANDOCK_PLAYBOOK}/server_install.yml"
     if [ "$tag" == "install" ]; then
-        echo-green "andock-ci server was installed successfully."
-        echo-green "andock-ci password is: $andock_ci_pw"
+        echo-green "andock server was installed successfully."
+        echo-green "andock password is: $ANDOCK_pw"
     else
-        echo-green "andock-ci server was updated successfully."
+        echo-green "andock server was updated successfully."
     fi
 
 }

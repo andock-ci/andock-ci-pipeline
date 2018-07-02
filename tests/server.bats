@@ -9,7 +9,7 @@ setup() {
 }
 
 @test "server:install" {
-  ../../bin/acp.sh server:install "andock-ci" "root"
+  ../../bin/acp.sh server:install "andock" "root"
 }
 
 @test "server:ssh-add" {

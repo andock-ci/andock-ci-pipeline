@@ -1,8 +1,8 @@
-site_name: andock-ci pipeline Documentation
+site_name: andock pipeline Documentation
 theme: readthedocs
 theme_dir: docs/_custom_theme
-repo_url: https://github.com/andock-ci/pipeline
-site_url: https://docs.andock-ci
+repo_url: https://github.com/andock/pipeline
+site_url: https://docs.andock
 extra_css:
   - _css/extra.css
 markdown_extensions:

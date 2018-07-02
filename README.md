@@ -1,4 +1,4 @@
-# andock-ci-pipeline (acp) - docksal remote control
+# andock-pipeline (acp) - docksal remote control
 ## What is andock?
 A command line tool managing remote docksal environments with ansible.   
 ##Key features

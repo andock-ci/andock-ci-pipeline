@@ -15,7 +15,7 @@
 #### Install wrapper. 
 (Right now it is a slim wrapper script which calls acp inside the acp container. Later this should be a docksal add on.)
 ```
-    curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/master/install-pipeline-docksal | sh
+    curl -fsSL https://raw.githubusercontent.com/andock/pipeline/master/install-pipeline-docksal | sh
 ```
 #### Server setup 
 [See documentation](/install-server.md)
@@ -29,5 +29,5 @@ acp fin init
 ```
 ## Congratulation your are done!.
 
-3. [Configuring your docksal project to use andock-ci](/project-setup.md)
+3. [Configuring your docksal project to use andock](/project-setup.md)
 

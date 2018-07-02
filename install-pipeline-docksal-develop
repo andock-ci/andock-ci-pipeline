@@ -1,4 +1,4 @@
 sudo mkdir -p /usr/local/bin &&
-sudo curl -fsSL https://raw.githubusercontent.com/andock-ci/pipeline/develop/bin/acp-docksal.sh -o /usr/local/bin/acp &&
+sudo curl -fsSL https://raw.githubusercontent.com/andock/pipeline/develop/bin/acp-docksal.sh -o /usr/local/bin/acp &&
 sudo chmod +x /usr/local/bin/acp
-echo "andock-ci pipeline wrapper was installed successfully"
+echo "andock pipeline wrapper was installed successfully"
