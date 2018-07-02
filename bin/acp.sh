@@ -278,10 +278,10 @@ install_configuration ()
     export ANSIBLE_RETRY_FILES_ENABLED="False"
     generate_playbooks
     echo-green "Installing roles:"
-    ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
-    ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
-    ansible-galaxy install andock-ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
-    ansible-galaxy install j0lly.ssh-keys,v${REQUIREMENTS_SSH_KEYS} --force
+    ansible-galaxy install andock_ci.build,v0.1.0 --force
+    ansible-galaxy install andock_ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
+    ansible-galaxy install andock_ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
+    ansible-galaxy install j0lly.ssh_keys,v${REQUIREMENTS_SSH_KEYS} --force
     echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
