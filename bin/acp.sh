@@ -277,8 +277,9 @@ install_configuration ()
     mkdir -p $ANDOCK_CI_INVENTORY_GLOBAL
     export ANSIBLE_RETRY_FILES_ENABLED="False"
     generate_playbooks
+    sudo chmod 600 ~/.netrc
     echo-green "Installing roles:"
-    ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
+    ansible-galaxy install andock_ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
     ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
     ansible-galaxy install andock-ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
     ansible-galaxy install j0lly.ssh-keys,v${REQUIREMENTS_SSH_KEYS} --force
