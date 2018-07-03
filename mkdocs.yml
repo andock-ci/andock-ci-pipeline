@@ -10,4 +10,4 @@ pages:
     - Use with docksal: getting-started/docksal.md
     - Use with ci: getting-started/ci.md
     - Examples hook configurations:
-      - Drupal: example-drupal-hooks.md
+      - Drupal: getting-started/example-drupal-hooks.md
