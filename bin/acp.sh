@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSIBLE_VERSION="2.4.4"
-ANDOCK_CI_VERSION=0.3.7
+ANDOCK_CI_VERSION=0.3.8
 
 REQUIREMENTS_ANDOCK_CI_BUILD='0.1.0'
 REQUIREMENTS_ANDOCK_CI_FIN='0.2.1'
@@ -261,6 +261,7 @@ install_pipeline()
         sudo pip install ansible=="${ANSIBLE_VERSION}"
         rm get-pip.py
     fi
+    sudo pip install urllib3 pyOpenSSL ndg-httpsclient pyasn1
 
     which ssh-agent || ( sudo apt-get update -y && sudo apt-get install openssh-client -y )
 
