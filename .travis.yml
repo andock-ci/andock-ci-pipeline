@@ -14,6 +14,7 @@ env:
 
 before_install:
 - "./before_install.sh"
+- sudo pip install urllib3
 - ./bin/acp.sh _install-pipeline
 script:
 - set -e
