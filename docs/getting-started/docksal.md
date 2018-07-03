@@ -1,6 +1,5 @@
 # Setup instructions
 
-<a name="install"></a>
 ## 1. Installation
 
 [System requirements](/system-requirements.md)
@@ -34,7 +33,8 @@ fin acp fin init
 ```
 fin acp fin up
 ```
-## Congratulations, the installation is finished!
+### Congratulations, the installation is finished!
 
-3. [Configuring your docksal project to use andock-ci](/project-setup.md)
 
+## Example hook configurations:
+1. [Drupal](example-drupal-hooks.md)
