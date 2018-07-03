@@ -251,8 +251,6 @@ install_pipeline()
     sudo apt-get install whois sudo build-essential libssl-dev libffi-dev python-dev -y
 
     set -e
-    wget https://bootstrap.pypa.io/get-pip.py
-    sudo python get-pip.py
 
     # Don't install own pip inside travis.
     if [ "${TRAVIS}" = "true" ]; then
