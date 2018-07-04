@@ -277,9 +277,9 @@ install_configuration ()
     #export ANSIBLE_RETRY_FILES_ENABLED="False"
     generate_playbooks
     echo-green "Installing roles:"
-    ansible-galaxy install andock_ci.ansible_role_ssh_keys,v${REQUIREMENTS_SSH_KEYS} --force
-    ansible-galaxy install andock_ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
+    ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
     ansible-galaxy install andock_ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
+    ansible-galaxy install andock_ci.ansible_role_ssh_keys,v${REQUIREMENTS_SSH_KEYS} --force
     ansible-galaxy install andock_ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
     echo "
 [andock-ci-build-server]
