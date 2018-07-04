@@ -22,8 +22,10 @@ fin acp server:ssh-add "ssh-rsa AAAAB3NzaC1yc2EA ..."
 ```
 fin acp config:generate
 ```
-
 This will create some required config files and templates for init, build, test and update hooks. 
+#### Build project (optional)
+@TODO If you like to build your project and push it to target repository before you check it out on andock-ci server.
+[See](build.md)
 #### Initialize remote environment
 ```
 fin acp fin init
@@ -31,8 +33,14 @@ fin acp fin init
 
 #### Update remote environment
 ```
-fin acp fin up
+fin acp fin update
 ```
+
+#### Run tests
+```
+fin acp fin test
+```
+
 ### Congratulations, the installation is finished!
 
 
