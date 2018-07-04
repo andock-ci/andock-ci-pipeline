@@ -196,33 +196,21 @@ generate_playbooks()
     echo "---
 - hosts: andock-ci-build-server
   roles:
-    - { role: andock_ci.build }
+    - { role: andock-ci.build }
 " > "${ANDOCK_CI_PLAYBOOK}/build.yml"
 
     echo "---
 - hosts: andock-ci-docksal-server
   gather_facts: true
   roles:
-    - { role: andock_ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
+    - { role: andock-ci.fin, git_repository_path: \"{{ git_target_repository_path }}\" }
 " > "${ANDOCK_CI_PLAYBOOK}/fin.yml"
-
-    echo "---
-- hosts: andock-ci-build-server
-  roles:
-    - { role: andock_ci.tag, git_repository_path: \"{{ git_source_repository_path }}\" }
-" > "${ANDOCK_CI_PLAYBOOK}/tag_source.yml"
-
-    echo "---
-- hosts: andock-ci-build-server
-  roles:
-    - { role: andock_ci.tag, git_repository_path: \"{{ git_target_repository_path }}\" }
-" > "${ANDOCK_CI_PLAYBOOK}/tag_target.yml"
 
 
     echo "---
 - hosts: andock-ci-docksal-server
   roles:
-    - role: andock_ci.ansible_role_ssh_keys
+    - role: andock-ci.ansible_role_ssh_keys
       ssh_keys_clean: False
       ssh_keys_user:
         andock-ci:
@@ -278,9 +266,9 @@ install_configuration ()
     generate_playbooks
     echo-green "Installing roles:"
     ansible-galaxy install andock-ci.build,v${REQUIREMENTS_ANDOCK_CI_BUILD} --force
-    ansible-galaxy install andock_ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
-    ansible-galaxy install andock_ci.ansible_role_ssh_keys,v${REQUIREMENTS_SSH_KEYS} --force
-    ansible-galaxy install andock_ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
+    ansible-galaxy install andock-ci.fin,v${REQUIREMENTS_ANDOCK_CI_FIN} --force
+    ansible-galaxy install andock-ci.ansible_role_ssh_keys,v${REQUIREMENTS_SSH_KEYS} --force
+    ansible-galaxy install andock-ci.server,v${REQUIREMENTS_ANDOCK_CI_SERVER} --force
     echo "
 [andock-ci-build-server]
 localhost ansible_connection=local
