@@ -24,7 +24,7 @@ fin acp config:generate
 ```
 This will create some required config files and templates for init, build, test and update hooks. 
 #### Build project (optional)
-If you like to build your project and push it to target repository before you check it out on andock-ci server.
+@TODO If you like to build your project and push it to target repository before you check it out on andock-ci server.
 [See](build.md)
 #### Initialize remote environment
 ```

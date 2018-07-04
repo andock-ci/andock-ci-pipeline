@@ -1,7 +1,5 @@
-# Setup instructions
+# CI configuration
 
-<a name="install"></a>
-## Installation gitlab.
 
 TBD.
 
