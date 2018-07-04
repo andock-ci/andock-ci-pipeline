@@ -220,7 +220,7 @@ generate_playbooks()
     echo "---
 - hosts: andock-ci-docksal-server
   roles:
-    - { role: andock_ci.server }
+    - { role: andock-ci.server }
 " > "${ANDOCK_CI_PLAYBOOK}/server_install.yml"
 
 }
