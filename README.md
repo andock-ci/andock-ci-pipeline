@@ -6,11 +6,6 @@ A docksal hosting solution.
 ## What is andock pipeline?
 A command line tool for andock.   
 
-## For what can you use andock?
-* Host your project including environments support for every branch.
-* Host your project on acquia, platform.sh etc. Use andock for unlimited development environment.
-* Use andock to host review environments for qa suites. 
-
 ## Key features
 * Easy to use command line tool.
 * Use ansible to remote control docksal.
@@ -27,3 +22,4 @@ A command line tool for andock.
 # Getting started?
 
 * [See documentation](https://andock-ci-pipeline.readthedocs.io/en/latest/)
+* [5 minutes setup](https://andock-ci-pipeline.readthedocs.io/en/latest/docksal.md)

@@ -7,7 +7,7 @@ markdown_extensions:
 pages:
   - Home: index.md
   - Getting started:
-    - What is this software for: getting-started/the-software.md
+    - What is andock: getting-started/the-software.md
     - System requirements: getting-started/system-requirements.md
     - 5 minutes setup: getting-started/docksal.md
     - Automate on your ci: getting-started/ci.md

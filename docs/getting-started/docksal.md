@@ -1,6 +1,5 @@
-# Setup instructions
+# 5 minutes setup instruction
 
-## Installation
 
 [System requirements](/system-requirements.md)
 #### Enable acp in your project
@@ -43,6 +42,7 @@ fin acp fin test
 
 ### Congratulations, the installation is finished!
 
-
-## Example hook configurations:
-1. [Drupal](example-drupal-hooks.md)
+### Read more:
+* [CI server automation](ci.md)
+### Example hook configurations:
+1. [Drupal](../configuration/example-drupal-hooks.md)
