@@ -7,7 +7,14 @@ markdown_extensions:
 pages:
   - Home: index.md
   - Getting started:
-    - Use with docksal: getting-started/docksal.md
-    - Use with ci: getting-started/ci.md
-    - Examples hook configurations:
-      - Drupal: getting-started/example-drupal-hooks.md
+    - What is andock: getting-started/the-software.md
+    - System requirements: getting-started/system-requirements.md
+    - 5 minutes setup: getting-started/docksal.md
+    - Automate on your ci: getting-started/ci.md
+  - Configuration:
+    - Overview: configuration/overview.md
+    - Hook configurations:
+      - Drupal: configuration/example-drupal-hooks.md
+    - Build configuration: configuration/build.md
+    - Fin configuration: configuration/fin.md
+    - Server configuration: configuration/fin.md

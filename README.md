@@ -1,6 +1,11 @@
-# andock-ci-pipeline (acp) - docksal remote control
+# andock(ci) - docksal and ansible powered hosting.
+
 ## What is andock?
-A command line tool managing remote docksal environments with ansible.   
+A docksal hosting solution.
+
+## What is andock pipeline?
+A command line tool for andock.   
+
 ## Key features
 * Easy to use command line tool.
 * Use ansible to remote control docksal.
@@ -16,7 +21,5 @@ A command line tool managing remote docksal environments with ansible.
 
 # Getting started?
 
-## Installation scenarios:
-
-* [Use inside docksal](https://andock-ci-pipeline.readthedocs.io/en/latest/getting-started/docksal/)
-* [Use on ci server](https://andock-ci-pipeline.readthedocs.io/en/latest/getting-started/ci/)
+* [See documentation](https://andock-ci-pipeline.readthedocs.io/en/latest/)
+* [5 minutes setup](https://andock-ci-pipeline.readthedocs.io/en/latest/docksal.md)

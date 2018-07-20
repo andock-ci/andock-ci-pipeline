@@ -1,8 +1,11 @@
-# Setup instructions
+# 5 minutes setup instruction
 
-## 1. Installation
 
 [System requirements](/system-requirements.md)
+#### Install addon
+```
+fin addon install acp
+```
 #### Enable acp in your project
 ```
 fin acp enable
@@ -25,13 +28,13 @@ fin acp config:generate
 This will create some required config files and templates for init, build, test and update hooks. 
 #### Build project (optional)
 @TODO If you like to build your project and push it to target repository before you check it out on andock-ci server.
-[See](build.md)
+[See](./build.md)
 #### Initialize remote environment
 ```
 fin acp fin init
 ```
 
-#### Update remote environment
+#### Update remote environment  
 ```
 fin acp fin update
 ```
@@ -43,6 +46,7 @@ fin acp fin test
 
 ### Congratulations, the installation is finished!
 
-
-## Example hook configurations:
-1. [Drupal](example-drupal-hooks.md)
+### Read more:
+* [CI server automation](ci.md)
+### Example hook configurations:
+1. [Drupal](../configuration/example-drupal-hooks.md)
