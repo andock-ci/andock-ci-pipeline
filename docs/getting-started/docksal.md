@@ -2,6 +2,10 @@
 
 
 [System requirements](/system-requirements.md)
+#### Install addon
+```
+fin addon install acp
+```
 #### Enable acp in your project
 ```
 fin acp enable
