@@ -1,4 +1,4 @@
-site_name: andock-ci pipeline Documentation
+site_name: andock(ci) pipeline documentation
 theme: readthedocs
 repo_url: https://github.com/andock-ci/pipeline
 site_url: https://docs.andock-ci
@@ -7,14 +7,13 @@ markdown_extensions:
 pages:
   - Home: index.md
   - Getting started:
-    - What is andock: getting-started/the-software.md
+    - Concept: getting-started/the-software.md
     - System requirements: getting-started/system-requirements.md
     - 5 minutes setup: getting-started/docksal.md
     - Automate on your ci: getting-started/ci.md
   - Configuration:
     - Overview: configuration/overview.md
-    - Hook configurations:
-      - Drupal: configuration/example-drupal-hooks.md
     - Build configuration: configuration/build.md
     - Fin configuration: configuration/fin.md
-    - Server configuration: configuration/fin.md
+    - Hook configurations:
+      - Drupal: configuration/example-drupal-hooks.md
