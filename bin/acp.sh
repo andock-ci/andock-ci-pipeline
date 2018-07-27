@@ -753,27 +753,51 @@ run_alias ()
 run_drush_generate ()
 {
     set -e
+    # Abort if andock is configured.
     check_settings_path
+    # Load settings.
     get_settings
     local branch_name
+    # Read current branch.
     branch_name=$(get_current_branch)
 
+    # Generate drush folder if not exists
+    mkdir -p drush
+    # The local drush file.
+    local drush_file="drush/${config_project_name}.aliases.drushrc.php"
+
+    # Check if a drush file already exists. If not generate a stub which export
+    # the alias name to LC_ANDOCK_CI_ENV.
+    # Based on LC_ANDOCK_CI_ENV andock server jumps into the correct cli container
+    if [ ! -f ${drush_file} ]; then
+        echo "<?php
+\$_drush_context = drush_get_context();
+if (isset(\$_drush_context['DRUSH_TARGET_SITE_ALIAS'])) {
+  putenv ('LC_ANDOCK_CI_ENV=' . substr(\$_drush_context['DRUSH_TARGET_SITE_ALIAS'], 1));
+}" > ${drush_file}
+    fi
+    # source .docksal/docksal.env for DOCROOT.
+    source .docksal/docksal.env
+    # Generate one alias for each configured domain.
     local domains
     domains=$(echo $config_domain | tr " " "\n")
+    # Loop through each domain to generate one alias for each subsite.
     for domain in $domains
         do
             local url="http://${branch_name}.${domain}"
-            echo-green  "Domain: [$url]"
             echo "
 \$aliases['${branch_name}'] = array (
-  'root' => '/var/www/drupal',
+  'root' => '/var/www/${DOCROOT}',
   'uri' => '${url}',
-  'remote-host' => '${url}',
+  'remote-host' => '${domain}',
   'remote-user' => 'andock-ci',
   'ssh-options' => '-o SendEnv=LC_ANDOCK_CI_ENV'
 );
-"
+" >> $drush_file
         done
+
+    echo-green  "Drush alias for branch \"${branch_name}\" was generated successfully."
+    echo-green  "See ${drush_file}"
 }
 
 
@@ -872,7 +896,6 @@ cd "$root_path"
 # Store the command.
 command=$1
 shift
-
 # Finally. Run the command.
 case "$command" in
   _install-pipeline)
